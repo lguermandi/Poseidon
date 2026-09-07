@@ -167,7 +167,7 @@
 
     async function salvaInCloud(mod, punt, esito, errTxt) {
         const payload = {
-        email: localStorage.getItem('poseidon_user'),
+        email: localStorage.getItem('navigazione_user'),
         modalita: mod === 'esame' ? 'Simulazione Esame Base' : 'Argomento',
         punteggio: punt,
         esito: esito,

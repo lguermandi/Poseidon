@@ -38,7 +38,7 @@
 
     <!-- Tabella Storico Logbook -->
     <div class="panel" id="pannello-tabella">
-        <h3 style="color: #38bdf8; margin-top: 0;">Registro di Poseidon</h3>
+        <h3 style="color: #38bdf8; margin-top: 0;">Registro di Navigazione</h3>
         <div style="overflow-x: auto;">
             <table class="logbook-table">
                 <thead>
@@ -65,7 +65,7 @@
         function registraPuntoGPS() {
             const stato = document.getElementById('stato-log');
             const meteo = document.getElementById('nota-meteo').value || "N/D";
-            const testo = document.getElementById('nota-testo').value || "Poseidon regolare";
+            const testo = document.getElementById('nota-testo').value || "Navigazione regolare";
 
             if (!navigator.geolocation) {
                 stato.textContent = "Errore: GPS non supportato dal dispositivo.";

@@ -11,7 +11,7 @@
     let lineaRotta = null;
 
     // Variabili per il tracciamento GPS live
-    let inPoseidon = false;
+    let inNavigazione = false;
     let watchId = null;
     let startTime = null;
     let timerInterval = null;
@@ -21,7 +21,7 @@
 
     // --- 1. PLOTTER MANUALE (Attivo solo se il GPS è spento) ---
     map.on('click', function (e) {
-        if (inPoseidon) return; 
+        if (inNavigazione) return; 
 
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
@@ -60,18 +60,18 @@
     }
 
     // --- 2. TRACCIAMENTO GPS SATELLITARE ---
-    function togglePoseidon() {
+    function toggleNavigazione() {
         const btn = document.getElementById("btn-naviga");
 
-        if (!inPoseidon) {
+        if (!inNavigazione) {
             // Avvia la registrazione in background
-            inPoseidon = true;
+            inNavigazione = true;
             gpsTrack = [];
             liveDistanzaNm = 0;
             liveRotta.setLatLngs([]);
             cancellaRotta(); // Pulisce i waypoint manuali per fare spazio al GPS
 
-            btn.innerHTML = "⏹ Ferma Poseidon";
+            btn.innerHTML = "⏹ Ferma Navigazione";
             btn.style.background = "#ef4444";
 
             startTime = Date.now();
@@ -87,9 +87,9 @@
                 alert("Il segnale GPS non è supportato da questo dispositivo.");
             }
         } else {
-            // Ferma la Poseidon e salva i dati
-            inPoseidon = false;
-            btn.innerHTML = "▶ Inizia Poseidon";
+            // Ferma la Navigazione e salva i dati
+            inNavigazione = false;
+            btn.innerHTML = "▶ Inizia Navigazione";
             btn.style.background = "#22c55e";
 
             clearInterval(timerInterval);
@@ -143,16 +143,16 @@
             distanza: liveDistanzaNm.toFixed(2)
         };
 
-        const rotteEsistenti = JSON.parse(localStorage.getItem("poseidon_rotte") || "[]");
+        const rotteEsistenti = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
         rotteEsistenti.push(nuovaRotta);
-        localStorage.setItem("poseidon_rotte", JSON.stringify(rotteEsistenti));
+        localStorage.setItem("navigazione_rotte", JSON.stringify(rotteEsistenti));
 
-        alert("Poseidon terminata e dati salvati con successo nel Profilo.");
+        alert("Navigazione terminata e dati salvati con successo nel Profilo.");
     }
 
     function cancellaRotta() {
-        if (inPoseidon) {
-            alert("Sospendi la Poseidon in corso prima di cestinare la rotta.");
+        if (inNavigazione) {
+            alert("Sospendi la Navigazione in corso prima di cestinare la rotta.");
             return;
         }
 
@@ -177,5 +177,5 @@
 
     // Rendiamo accessibili le funzioni all'HTML tramite l'oggetto window
     window.cancellaRotta = cancellaRotta;
-    window.togglePoseidon = togglePoseidon;
+    window.toggleNavigazione = toggleNavigazione;
 })();

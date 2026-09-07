@@ -13,7 +13,7 @@ class NavCore {
     }
 
     /**
-     * Calcola il tempo di Poseidon (Ore decimali)
+     * Calcola il tempo di Navigazione (Ore decimali)
      */
     static getTime(distance, speed) {
         return distance / speed;

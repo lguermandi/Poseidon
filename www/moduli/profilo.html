@@ -84,6 +84,13 @@
                 </div>
             </div>
 
+            <!-- Pulsanti Backup in Blocco -->
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-action" style="flex: 1; background: #3b82f6;" onclick="esportaBackupRotte()">💾 Backup Completo</button>
+                <button class="btn-action" style="flex: 1; background: #8b5cf6;" onclick="document.getElementById('file-import-rotte').click()">📥 Ripristina Backup</button>
+                <input type="file" id="file-import-rotte" accept=".json" style="display: none;" onchange="importaBackupRotte(event)">
+            </div>
+
             <!-- SEZIONE STORICO ROTTE -->
             <div class="section-title" style="margin-top: 30px;">Archivio Navigazioni GPS</div>
             <div id="lista-tracce" style="margin-top: 15px; text-align: left;">
@@ -287,7 +294,7 @@
         // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---
         function aggiornaListaTracce(email) {
             const contenitore = document.getElementById('lista-tracce');
-            const storico = JSON.parse(localStorage.getItem('poseidon_rotte') || "[]");
+            const storico = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
             
             if (storico.length === 0) {
                 contenitore.innerHTML = "<p style='color:#94a3b8; font-size:0.9rem;'>Nessuna traccia GPS registrata.</p>";
@@ -361,14 +368,14 @@
         // Nuova funzione per estrarre il GPX senza bloccare la memoria del browser
         window.esportaTracciaDaId = function(tracciaId) {
             const emailUtente = localStorage.getItem('plancia_utente');
-            const storico = JSON.parse(localStorage.getItem('poseidon_rotte') || "[]");
+            const storico = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
             const traccia = storico.find(t => t.id === tracciaId);
             if (traccia) esportaTracciaGPX(traccia);
         }
 
         async function esportaTracciaGPX(traccia) {
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-            <gpx version="1.1" creator="Poseidon Poseidon">
+            <gpx version="1.1" creator="Poseidon Navigazione">
                 <trk><name>${traccia.nome || 'Rotta_Salvata'}</name><trkseg>`;
             
             // Gestiamo eventuali differenze nei nomi delle variabili salvate dalla mappa
@@ -384,7 +391,7 @@
             gpx += `\n</trkseg></trk></gpx>`;
 
             // Crea il file fisico
-            const file = new File([gpx], `Poseidon_Rotta_${traccia.id || 'export'}.gpx`, { type: 'application/gpx+xml' });
+            const file = new File([gpx], `Navigazione_Rotta_${traccia.id || 'export'}.gpx`, { type: 'application/gpx+xml' });
             
             // Se siamo su Android (o browser compatibile), usa il menu di Condivisione Nativo
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -403,10 +410,68 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Poseidon_Rotta.gpx`;
+                a.download = `Navigazione_Rotta.gpx`;
                 a.click();
                 URL.revokeObjectURL(url);
             }
+        }
+
+        async function esportaBackupRotte() {
+            // Estrae tutto il blocco dalla memoria locale
+            const dati = localStorage.getItem("navigazione_rotte") || "[]";
+            const nomeFile = `Navigazione_Backup_Rotte_${new Date().toISOString().slice(0,10)}.json`;
+            const file = new File([dati], nomeFile, { type: "application/json" });
+            
+            // Usa il menu di condivisione di Android
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Backup Rotte Navigazione',
+                        text: 'File JSON contenente tutte le rotte registrate.'
+                    });
+                } catch (error) {
+                    console.log('Condivisione backup annullata');
+                }
+            } else {
+                // Alternativa di emergenza per PC
+                const blob = new Blob([dati], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = nomeFile;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function importaBackupRotte(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (Array.isArray(parsed)) {
+                        // Sovrascrive la memoria con il backup
+                        localStorage.setItem("navigazione_rotte", JSON.stringify(parsed));
+                        
+                        // Aggiorna istantaneamente la lista visiva a schermo
+                        const email = localStorage.getItem('plancia_utente');
+                        aggiornaListaTracce(email);
+                        
+                        alert("Backup ripristinato con successo! Rotte ricaricate nella plancia.");
+                    } else {
+                        alert("Il file selezionato non è un backup valido di Navigazione.");
+                    }
+                } catch (err) {
+                    alert("Errore durante la lettura del file JSON.");
+                }
+                // Resetta l'input per permettere futuri caricamenti
+                event.target.value = '';
+            };
+            reader.readAsText(file);
         }
 
     </script>

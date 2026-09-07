@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function caricaStatisticheERotte() {
-    const rotte = JSON.parse(localStorage.getItem("poseidon_rotte") || "[]");
+    const rotte = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
     
     // Calcola totali
     let migliaTotali = 0;
@@ -36,13 +36,13 @@ function caricaStatisticheERotte() {
 
 // Esporta i dati in un file scaricabile sul dispositivo
 function esportaDati() {
-    const dati = localStorage.getItem("poseidon_rotte") || "[]";
+    const dati = localStorage.getItem("navigazione_rotte") || "[]";
     const blob = new Blob([dati], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     
     const a = document.createElement("a");
     a.href = url;
-    a.download = `poseidon_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `navigazione_backup_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -59,7 +59,7 @@ function importaDati(event) {
         try {
             const parsed = JSON.parse(e.target.result);
             if (Array.isArray(parsed)) {
-                localStorage.setItem("poseidon_rotte", JSON.stringify(parsed));
+                localStorage.setItem("navigazione_rotte", JSON.stringify(parsed));
                 alert("Dati ripristinati con successo!");
                 caricaStatisticheERotte();
             } else {
