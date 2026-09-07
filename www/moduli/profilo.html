@@ -112,7 +112,7 @@
 
     <script>
         // URL di Google Apps Script richiamato dal parent (index.html)
-        const API_URL = window.parent ? window.parent.API_URL : "";
+        const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
 
         window.addEventListener('DOMContentLoaded', () => {
             const utenteSalvato = localStorage.getItem('plancia_utente');
@@ -140,7 +140,6 @@
             try {
                 const response = await fetch(API_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify({ azione: "login", email: email, passwordHash: hashedPassword })
                 });
                 const risultato = await response.json();
@@ -176,7 +175,6 @@
             try {
                 const response = await fetch(API_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify({ azione: "registrazione", email: email, passwordHash: hashedPassword })
                 });
                 const risultato = await response.json();
