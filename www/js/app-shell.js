@@ -1,5 +1,5 @@
 (function () {
-    const menu = document.getElementById('menu-navigazione');
+    const menu = document.getElementById('menu-Poseidon');
     const iframe = document.getElementById('app-frame');
 
     if (!menu || !iframe) {

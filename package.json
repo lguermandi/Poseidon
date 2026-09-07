@@ -1,5 +1,5 @@
 {
-  "name": "software-navigazione-feedback",
+  "name": "software-Poseidon-feedback",
   "version": "1.0.0",
   "description": "",
   "main": "config.js",
@@ -18,10 +18,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lguermandi/NavigAzione.git"
+    "url": "git+https://github.com/lguermandi/Poseidon.git"
   },
   "bugs": {
-    "url": "https://github.com/lguermandi/NavigAzione/issues"
+    "url": "https://github.com/lguermandi/Poseidon/issues"
   },
-  "homepage": "https://github.com/lguermandi/NavigAzione#readme"
+  "homepage": "https://github.com/lguermandi/Poseidon#readme"
 }

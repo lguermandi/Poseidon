@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Genera il file JKS e convertilo in Base64
         run: |
-          keytool -genkey -v -keystore poseidon.jks -keyalg RSA -keysize 2048 -validity 10000 -alias poseidon -storepass ${{ github.event.inputs.password }} -keypass ${{ github.event.inputs.password }} -dname "CN=Poseidon, OU=Navigazione, O=Vela, C=IT"
+          keytool -genkey -v -keystore poseidon.jks -keyalg RSA -keysize 2048 -validity 10000 -alias poseidon -storepass ${{ github.event.inputs.password }} -keypass ${{ github.event.inputs.password }} -dname "CN=Poseidon, OU=Poseidon, O=Vela, C=IT"
           base64 -w 0 poseidon.jks > keystore_b64.txt
 
       - name: Carica il testo Base64 per il download

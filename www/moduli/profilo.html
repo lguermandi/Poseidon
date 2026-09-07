@@ -192,7 +192,7 @@
         function mostraStatoUtente(email) {
             document.getElementById('form-container').classList.add('hidden');
             document.getElementById('profilo-container').classList.remove('hidden');
-            document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
+            document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Poseidon";
             document.getElementById('testo-email-utente').textContent = email;
             
             aggiornaStatistiche();
@@ -325,7 +325,7 @@
 
         async function esportaTracciaGPX(traccia) {
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-            <gpx version="1.1" creator="Poseidon Navigazione">
+            <gpx version="1.1" creator="Poseidon Poseidon">
                 <trk><name>${traccia.nome || 'Rotta_Salvata'}</name><trkseg>`;
             
             // Gestiamo eventuali differenze nei nomi delle variabili salvate dalla mappa
