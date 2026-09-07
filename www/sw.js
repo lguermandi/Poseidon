@@ -7,7 +7,7 @@ const FILE_DA_SALVARE = [
     './config.js',
     './css/style.css',
     './js/app-shell.js',
-    './js/core_Navigazione.js',
+    './js/core_navigazione.js',
     './js/core_vela.js',
     './js/mappa-module.js',
     './js/quiz-module.js',

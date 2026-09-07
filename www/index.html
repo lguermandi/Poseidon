@@ -7,7 +7,7 @@
     
     <!-- Colleghiamo il CSS e il file di Configurazione -->
     <link rel="stylesheet" href="css/style.css">
-    <script defer src="config.js"></script>
+    
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <!-- INIZIO CODICE PWA (App Offline) -->
@@ -18,19 +18,49 @@
 </head>
 <body>
 
-    <header>
-        <div class="logo">⛵ Plancia di Comando</div>
+    <header id="main-header">
+        <div class="logo">⛵ Poseidon</div>
         <nav id="menu-Navigazione">
-            <!-- I bottoni verranno creati qui automaticamente dallo script -->
+            <!-- Pulsante 1: Accademia (Impostato come attivo all'avvio) -->
+            <button onclick="cambiaModulo('moduli/accademia.html', this)" class="nav-btn active">
+                <i class="ph ph-graduation-cap"></i>
+                <span>Accademia</span>
+            </button>
+            
+            <!-- Pulsante 2: Navigazione -->
+            <button onclick="cambiaModulo('moduli/navigazione.html', this)" class="nav-btn">
+                <i class="ph ph-compass"></i>
+                <span>Navigazione</span>
+            </button>
+            
+            <!-- Pulsante 3: Profilo -->
+            <button onclick="cambiaModulo('moduli/profilo.html', this)" class="nav-btn">
+                <i class="ph ph-user"></i>
+                <span>Profilo</span>
+            </button>
         </nav>
     </header>
 
     <main>
         <!-- L'iframe è lo "schermo" dove vengono proiettati i vari moduli -->
-        <iframe id="app-frame" src="moduli/home.html"></iframe>
+        <iframe id="app-frame" src="moduli/accademia.html"></iframe>
     </main>
 
 <script defer src="js/app-shell.js"></script>
+
+<script>
+    function cambiaModulo(url, elementoBtn) {
+        // Cambia la pagina proiettata nell'iframe
+        document.getElementById('app-frame').src = url;
+        
+        // Spegne tutti i pulsanti (rimuove il colore azzurro)
+        const bottoni = document.querySelectorAll('.nav-btn');
+        bottoni.forEach(btn => btn.classList.remove('active'));
+        
+        // Accende di azzurro solo il bottone che hai appena cliccato
+        elementoBtn.classList.add('active');
+    }
+</script>
 
 </body>
 </html>

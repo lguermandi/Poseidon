@@ -92,9 +92,20 @@
                 registroLog.unshift(nuovaVoce);
                 localStorage.setItem('nave_logbook', JSON.stringify(registroLog));
 
-                // INVIO AUTOMATICO AL CLOUD (se l'utente è loggato)
-                if (window.parent && window.parent.sincronizzaConCloud) {
-                    window.parent.sincronizzaConCloud('logbook', registroLog);
+                // INVIO AUTOMATICO AL CLOUD
+                const email = localStorage.getItem('plancia_utente');
+                if (email) {
+                    // Inserisci qui l'URL del tuo script Google!
+                    const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
+                    fetch(API_URL, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            azione: "salva_dati",
+                            email: email,
+                            tipoDato: "logbook",
+                            contenuto: registroLog
+                        })
+                    }).catch(e => console.log("Sincronizzazione in background fallita"));
                 }
 
                 mostraLogbook();

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accademia Nautica</title>
+    <!-- Usa Phosphor Icons per le icone -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            font-family: sans-serif; 
+            padding: 20px; 
+            margin: 0;
+        }
+        h1 { 
+            text-align: center; 
+            font-size: 1.5rem; 
+            margin-bottom: 30px; 
+            color: #94a3b8; 
+        }
+        .hub-grid { 
+            display: grid; 
+            /* Crea automaticamente 2 colonne su smartphone e più su PC */
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 15px; 
+        }
+        .hub-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px 10px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+        .hub-card i { 
+            font-size: 3rem; 
+            color: #3b82f6; /* Azzurro luminoso */
+        }
+        .hub-card span { 
+            font-weight: bold; 
+            font-size: 0.95rem; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📚 Area Accademia</h1>
+    
+    <div class="hub-grid">
+        <a href="quiz.html" class="hub-card">
+            <i class="ph ph-exam"></i>
+            <span>Simulazione Esame</span>
+        </a>
+        
+        <a href="carteggio.html" class="hub-card">
+            <i class="ph ph-compass-tool"></i>
+            <span>Carteggio</span>
+        </a>
+        
+        <a href="vhf.html" class="hub-card">
+            <i class="ph ph-radio"></i>
+            <span>Radio VHF</span>
+        </a>
+        
+        <a href="fari.html" class="hub-card">
+            <i class="ph ph-lighthouse"></i>
+            <span>Fari e Segnali</span>
+        </a>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigazione</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 20px; margin: 0; }
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 30px; color: #94a3b8; }
+        .hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
+        .hub-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px 10px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+        /* Colore verde acqua per distinguere visivamente l'area Navigazione */
+        .hub-card i { font-size: 3rem; color: #14b8a6; } 
+        .hub-card span { font-weight: bold; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <h1>🧭 Strumenti di Bordo</h1>
+    
+    <div class="hub-grid">
+        <a href="mappa.html" class="hub-card">
+            <i class="ph ph-map-trifold"></i>
+            <span>Plotter GPS</span>
+        </a>
+        
+        <a href="meteo.html" class="hub-card">
+            <i class="ph ph-cloud-sun"></i>
+            <span>Meteo</span>
+        </a>
+        
+        <a href="maree.html" class="hub-card">
+            <i class="ph ph-waves"></i>
+            <span>Maree</span>
+        </a>
+        
+        <a href="vela.html" class="hub-card">
+            <i class="ph ph-boat"></i>
+            <span>Manovre Vela</span>
+        </a>
+        
+        <a href="motore.html" class="hub-card">
+            <i class="ph ph-engine"></i>
+            <span>Motore</span>
+        </a>
+        
+        <a href="ancora.html" class="hub-card">
+            <i class="ph ph-anchor"></i>
+            <span>Ancoraggio</span>
+        </a>
+    </div>
+
+</body>
+</html>
