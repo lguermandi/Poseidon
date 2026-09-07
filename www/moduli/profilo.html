@@ -5,200 +5,367 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        .profile-card {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #334155;
-            margin-bottom: 20px;
+        .stat-card { 
+            background: #1e293b; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center; 
+            border: 1px solid #334155; 
         }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 15px;
+        .stat-value { 
+            font-size: 2rem; 
+            color: #38bdf8; 
+            font-weight: bold; 
         }
-        .stat-item {
-            background: #0f172a;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
+        .stat-label { 
+            color: #94a3b8; 
+            font-size: 0.85rem; 
+            text-transform: uppercase; 
         }
-        .stat-value {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #38bdf8;
+        .grid-stats { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            margin-top: 15px; 
+            margin-bottom: 25px;
         }
-        .stat-label {
-            font-size: 0.8rem;
-            color: #94a3b8;
-        }
-        .backup-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .route-item {
-            background: #0f172a;
-            border: 1px solid #334155;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        /* Stili aggiuntivi per gli input di login */
-        .auth-input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
-            margin-bottom: 10px;
-            box-sizing: border-box;
-            font-size: 1rem;
+        .section-title {
+            color: #f8fafc; 
+            border-bottom: 1px solid #334155; 
+            padding-bottom: 5px; 
+            margin-top: 20px;
+            text-align: left;
+            font-size: 1.1rem;
         }
     </style>
 </head>
 <body>
-    <h1>Profilo & Registro ⚓</h1>
-    <div class="subtitle">Statistiche e Gestione Dati di Bordo</div>
+    <h1>Area Personale 👤</h1>
+    <div class="subtitle" id="sottotitolo-pagina">Gestione profilo e statistiche di bordo</div>
 
-    <!-- 1. Accesso Cloud -->
-    <div class="profile-card" id="cloud-card">
-        <h3 style="margin-top:0; color:#f8fafc;">Cloud Personale</h3>
-        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;">
-            Accedi per sincronizzare i tuoi tracciati e i progressi dei quiz con il database online.
-        </p>
-        <div>
-            <input type="email" id="email-input" class="auth-input" placeholder="Email navigatore">
-            <input type="password" id="password-input" class="auth-input" placeholder="Password (min. 8 caratteri)">
-        </div>
-        <div class="backup-actions">
-            <button class="nav-btn" style="flex: 1; padding: 12px 6px;" onclick="gestisciAccesso('login')">Accedi</button>
-            <button class="nav-btn" style="flex: 1; padding: 12px 6px; background: #334155;" onclick="gestisciAccesso('registrazione')">Registrati</button>
-        </div>
-        <div id="profilo-status" style="margin-top: 15px; font-weight: bold; text-align: center; font-size: 0.9rem;"></div>
-    </div>
-
-    <!-- 2. Scheda Riepilogo -->
-    <div class="profile-card">
-        <h3 style="margin-top:0; color:#f8fafc;">Riepilogo Miglia</h3>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <div class="stat-value" id="totale-miglia">0.0</div>
-                <div class="stat-label">Miglia Totali (Nm)</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="totale-uscite">0</div>
-                <div class="stat-label">Rotte Registrate</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. Backup e Ripristino Dati Locali -->
-    <div class="profile-card">
-        <h3 style="margin-top:0; color:#f8fafc;">Salvataggio Offline</h3>
-        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;">
-            Scarica una copia dei tuoi tracciati sul telefono prima di aggiornare o disinstallare l'app, oppure ripristina un file precedente.
-        </p>
-        <div class="backup-actions">
-            <button class="nav-btn" style="flex: 1; padding: 12px 6px;" onclick="esportaDati()">💾 Esporta Backup</button>
-            <button class="nav-btn" style="flex: 1; padding: 12px 6px;" onclick="document.getElementById('file-input').click()">📥 Importa Backup</button>
-            <input type="file" id="file-input" accept=".json" style="display: none;" onchange="importaDati(event)">
-        </div>
-    </div>
-
-    <!-- 4. Storico Ultime Rotte -->
-    <div class="profile-card">
-        <h3 style="margin-top:0; color:#f8fafc;">Ultime Rotte Registrate</h3>
-        <div id="lista-rotte">
-            <p style="font-size: 0.85rem; color: #94a3b8; text-align: center;">Nessuna rotta salvata al momento.</p>
-        </div>
-    </div>
-
-    <!-- Modulo per la sicurezza e la connessione a Google -->
-    <script>
-    // 1. Cripta la password in SHA-256
-    async function criptaPassword(password) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    // 2. Legge le coordinate GPS del dispositivo
-    function ottieniPosizioneGPS() {
-        return new Promise((resolve) => {
-            if (!navigator.geolocation) {
-                resolve({ lat: "Non supportato", lng: "Non supportato" });
-            } else {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
-                    (error) => resolve({ lat: "Permesso negato o GPS spento", lng: "Permesso negato o GPS spento" }),
-                    { enableHighAccuracy: true, timeout: 6000 }
-                );
-            }
-        });
-    }
-
-    // 3. Gestisce l'accesso e invia i dati
-    async function gestisciAccesso(azione) {
-        const email = document.getElementById('email-input').value;
-        const passwordInChiaro = document.getElementById('password-input').value;
-        const statusDiv = document.getElementById('profilo-status');
-
-        if (!email || !passwordInChiaro) {
-            statusDiv.innerText = "Inserisci email e password.";
-            statusDiv.style.color = "#ef4444";
-            return;
-        }
-
-        statusDiv.innerText = "Connessione...";
-        statusDiv.style.color = "#38bdf8";
-
-        // Cripta la password e legge il GPS contemporaneamente
-        const passwordHash = await criptaPassword(passwordInChiaro);
-        const posizione = await ottieniPosizioneGPS();
+    <div class="panel" style="max-width: 450px; margin: 0 auto;">
         
-        // MANTIENI IL TUO URL QUI
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTRBHRGl5HK17AarzPBa97cmJCYqKrHxpoSacrjBw/exec'; 
+        <!-- Form di Login/Registrazione (Nascosto se loggato) -->
+        <div id="form-container">
+            <form onsubmit="event.preventDefault(); effettuaAccesso();">
+                <div class="input-group">
+                    <label>Indirizzo Email</label>
+                    <input type="email" id="auth-email" autocomplete="email" placeholder="nome@email.com" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="auth-password" autocomplete="current-password" placeholder="********" required>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-action" style="flex: 1;">Accedi</button>
+                    <button type="button" class="btn-action" style="flex: 1; background: #334155; color: #f8fafc;" onclick="registrati()">Registrati</button>
+                </div>
+            </form>
+            <p id="auth-status" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></p>
+        </div>
 
-        try {
-            const response = await fetch(scriptURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                azione: azione,
-                email: email,
-                passwordHash: passwordHash,
-                lat: posizione.lat,     
-                lng: posizione.lng      
-            })
-        });
-          
-            
-            const result = await response.json();
-            
-            if (result.status === "successo") {
-                statusDiv.innerText = result.messaggio;
-                statusDiv.style.color = "#22c55e";
-                localStorage.setItem('poseidon_user', email); 
-            } else {
-                statusDiv.innerText = result.messaggio;
-                statusDiv.style.color = "#ef4444";
+        <!-- Dashboard Utente Loggato -->
+        <div id="profilo-container" class="hidden">
+            <div style="text-align: center;">
+                <h3 style="color: #4ade80; margin-bottom: 5px;">Bentornato, Comandante! ⛵</h3>
+                <p style="color: #94a3b8; font-size: 0.9rem;">Connesso come: <b id="testo-email-utente" style="color: #f8fafc;"></b></p>
+            </div>
+
+            <div class="section-title">Le tue Statistiche</div>
+            <div class="grid-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-quiz">0</div>
+                    <div class="stat-label">Quiz Svolti</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-logbook">0</div>
+                    <div class="stat-label">Voci Logbook</div>
+                </div>
+            </div>
+
+            <!-- SEZIONE STORICO ROTTE -->
+            <div class="section-title" style="margin-top: 30px;">Archivio Navigazioni GPS</div>
+            <div id="lista-tracce" style="margin-top: 15px; text-align: left;">
+                <!-- Le tracce appariranno qui -->
+            </div>
+
+            <div class="section-title">Dati Navigatore</div>
+            <div style="text-align: left; margin-top: 15px;">
+                <div class="input-group">
+                    <label>Obiettivo / Qualifica</label>
+                    <input type="text" id="profilo-qualifica" placeholder="es. Patente oltre le 12 miglia" onchange="salvaDatiProfilo()">
+                </div>
+                <div class="input-group">
+                    <label>Imbarcazione Principale</label>
+                    <input type="text" id="profilo-barca" placeholder="es. Deriva 420" onchange="salvaDatiProfilo()">
+                </div>
+                <div class="input-group">
+                    <label>Porto Base</label>
+                    <input type="text" id="profilo-base" placeholder="es. Riccione" onchange="salvaDatiProfilo()">
+                </div>
+            </div>
+
+            <button class="btn-action" style="background: #ef4444; width: 100%; margin-top: 20px;" onclick="esciAccount()">Disconnetti (Logout)</button>
+        </div>
+    </div>
+
+    <script>
+        // URL di Google Apps Script richiamato dal parent (index.html)
+        const API_URL = window.parent ? window.parent.API_URL : "";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const utenteSalvato = localStorage.getItem('plancia_utente');
+            if (utenteSalvato) {
+                mostraStatoUtente(utenteSalvato);
             }
-        } catch (error) {
-            statusDiv.innerText = "Errore di connessione al Cloud.";
-            statusDiv.style.color = "#ef4444";
-        }
-    }
-</script>
+        });
 
-    <!-- Le logiche per esportaDati() e importaDati() andranno nel modulo esterno -->
-    <script src="../js/profilo-module.js"></script>
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function effettuaAccesso() {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            const status = document.getElementById('auth-status');
+
+            status.style.color = "#fb923c";
+            status.textContent = "Verifica credenziali ...";
+            const hashedPassword = await sha256(pass);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ azione: "login", email: email, passwordHash: hashedPassword })
+                });
+                const risultato = await response.json();
+
+                if (risultato.status === "successo") {
+                    localStorage.setItem('plancia_utente', email);
+                    mostraStatoUtente(email);
+                } else {
+                    status.style.color = "#ef4444";
+                    status.textContent = risultato.messaggio;
+                }
+            } catch (e) {
+                status.style.color = "#ef4444";
+                status.textContent = "Errore di rete durante il login.";
+            }
+        }
+
+        async function registrati() {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            const status = document.getElementById('auth-status');
+
+            if (!email || !pass) {
+                status.style.color = "#ef4444";
+                status.textContent = "Inserisci email e password per la registrazione.";
+                return;
+            }
+
+            status.style.color = "#fb923c";
+            status.textContent = "Registrazione sul cloud in corso...";
+            const hashedPassword = await sha256(pass);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify({ azione: "registrazione", email: email, passwordHash: hashedPassword })
+                });
+                const risultato = await response.json();
+
+                status.style.color = risultato.status === "successo" ? "#4ade80" : "#ef4444";
+                status.textContent = risultato.messaggio;
+            } catch (e) {
+                status.style.color = "#ef4444";
+                status.textContent = "Errore di rete durante la registrazione.";
+            }
+        }
+
+        function mostraStatoUtente(email) {
+            document.getElementById('form-container').classList.add('hidden');
+            document.getElementById('profilo-container').classList.remove('hidden');
+            document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
+            document.getElementById('testo-email-utente').textContent = email;
+            
+            aggiornaStatistiche();
+            aggiornaListaTracce(email);
+        }
+
+        function aggiornaStatistiche() {
+            // Conta le voci nel Logbook
+            const storicoLog = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+            document.getElementById('stat-logbook').textContent = storicoLog.length;
+
+            // Conta le simulazioni dei quiz (se hai implementato un salvataggio locale nel modulo quiz)
+            const storicoQuiz = JSON.parse(localStorage.getItem('nave_storico_quiz') || "[]");
+            document.getElementById('stat-quiz').textContent = storicoQuiz.length;
+
+            // Carica i dati del profilo salvati
+            document.getElementById('profilo-qualifica').value = localStorage.getItem('profilo_qualifica') || "";
+            document.getElementById('profilo-barca').value = localStorage.getItem('profilo_barca') || "";
+            document.getElementById('profilo-base').value = localStorage.getItem('profilo_base') || "";
+        }
+
+        function salvaDatiProfilo() {
+            const qualifica = document.getElementById('profilo-qualifica').value;
+            const barca = document.getElementById('profilo-barca').value;
+            const base = document.getElementById('profilo-base').value;
+
+            // Salva in locale
+            localStorage.setItem('profilo_qualifica', qualifica);
+            localStorage.setItem('profilo_barca', barca);
+            localStorage.setItem('profilo_base', base);
+
+            // Sincronizza col cloud (usando la funzione in index.html)
+            if (window.parent && window.parent.sincronizzaConCloud) {
+                const datiProfilo = { qualifica: qualifica, barca: barca, base: base };
+                window.parent.sincronizzaConCloud('profilo_utente', datiProfilo);
+            }
+        }
+
+        function esciAccount() {
+            localStorage.removeItem('plancia_utente');
+            document.getElementById('form-container').classList.remove('hidden');
+            document.getElementById('profilo-container').classList.add('hidden');
+            document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
+            document.getElementById('auth-email').value = "";
+            document.getElementById('auth-password').value = "";
+            document.getElementById('auth-status').textContent = "";
+        }
+
+        // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---
+        function aggiornaListaTracce(email) {
+            const contenitore = document.getElementById('lista-tracce');
+            const storico = JSON.parse(localStorage.getItem('poseidon_rotte') || "[]");
+            
+            if (storico.length === 0) {
+                contenitore.innerHTML = "<p style='color:#94a3b8; font-size:0.9rem;'>Nessuna traccia GPS registrata.</p>";
+                return;
+            }
+
+            // Formula matematica per calcolare la distanza tra due punti GPS sulla curvatura terrestre
+            function calcolaDistanzaMiglia(lat1, lon1, lat2, lon2) {
+                const R = 3440.065; // Raggio della Terra in Miglia Nautiche
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+            }
+
+            let html = "";
+            storico.reverse().forEach(traccia => {
+                let distanzaNm = 0;
+                let tempoOre = 0;
+                let stringaStat = "Dati insufficienti per le statistiche";
+
+                // Se la traccia ha almeno due punti, calcoliamo le statistiche
+                if (traccia.punti && traccia.punti.length > 1) {
+                    // Somma la distanza di tutti i piccoli segmenti
+                    for (let i = 1; i < traccia.punti.length; i++) {
+                        distanzaNm += calcolaDistanzaMiglia(
+                            traccia.punti[i-1].lat, traccia.punti[i-1].lon,
+                            traccia.punti[i].lat, traccia.punti[i].lon
+                        );
+                    }
+
+                    // Calcola il tempo tra il primo e l'ultimo fix GPS
+                    const tInizio = new Date(traccia.punti[0].time);
+                    const tFine = new Date(traccia.punti[traccia.punti.length - 1].time);
+                    tempoOre = (tFine - tInizio) / 3600000; // Converte i millisecondi in ore
+
+                    if (tempoOre > 0 && distanzaNm > 0) {
+                        const velMediaNodi = distanzaNm / tempoOre;
+                        const distanzaKm = distanzaNm * 1.852;
+                        const velMediaKmh = velMediaNodi * 1.852;
+                        
+                        const oreF = Math.floor(tempoOre);
+                        const minF = Math.round((tempoOre - oreF) * 60);
+
+                        stringaStat = `⏱️ Tempo: <b>${oreF}h ${minF}m</b><br>
+                                       📏 Distanza: <b>${distanzaNm.toFixed(2)} Nm</b> <span style="color:#64748b;">(${distanzaKm.toFixed(2)} km)</span><br>
+                                       ⛵ Media: <b>${velMediaNodi.toFixed(1)} kn</b> <span style="color:#64748b;">(${velMediaKmh.toFixed(1)} km/h)</span>`;
+                    }
+                }
+
+                html += `
+                    <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #10b981;">
+                        <div style="color: #f8fafc; font-weight: bold; font-size: 1.1rem;">${traccia.nome}</div>
+                        <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 10px;">${traccia.data} - ${traccia.punti.length} wp</div>
+                        
+                        <div style="background: #0f172a; padding: 10px; border-radius: 6px; color: #4ade80; font-size: 0.9rem; margin-bottom: 15px; line-height: 1.6;">
+                            ${stringaStat}
+                        </div>
+                        
+                        <button class="btn-action" style="padding: 8px 12px; font-size: 0.9rem; background: #38bdf8; color: #0f172a; width: 100%; font-weight: bold;" onclick='esportaTracciaDaId(${traccia.id})'>
+                            📥 Scarica File GPX
+                        </button>
+                    </div>
+                `;
+            });
+            contenitore.innerHTML = html;
+        }
+
+        // Nuova funzione per estrarre il GPX senza bloccare la memoria del browser
+        window.esportaTracciaDaId = function(tracciaId) {
+            const emailUtente = localStorage.getItem('plancia_utente');
+            const storico = JSON.parse(localStorage.getItem('poseidon_rotte') || "[]");
+            const traccia = storico.find(t => t.id === tracciaId);
+            if (traccia) esportaTracciaGPX(traccia);
+        }
+
+        async function esportaTracciaGPX(traccia) {
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+            <gpx version="1.1" creator="Poseidon Navigazione">
+                <trk><name>${traccia.nome || 'Rotta_Salvata'}</name><trkseg>`;
+            
+            // Gestiamo eventuali differenze nei nomi delle variabili salvate dalla mappa
+            const punti = traccia.punti || traccia.percorso || [];
+            
+            punti.forEach(p => {
+                const lat = p.lat || p.latitudine;
+                const lon = p.lon || p.lng || p.longitudine;
+                const velMS = (parseFloat(p.vel || 0) / 1.94384).toFixed(2); 
+                gpx += `\n<trkpt lat="${lat}" lon="${lon}"><time>${p.time || new Date().toISOString()}</time><speed>${velMS}</speed></trkpt>`;
+            });
+
+            gpx += `\n</trkseg></trk></gpx>`;
+
+            // Crea il file fisico
+            const file = new File([gpx], `Poseidon_Rotta_${traccia.id || 'export'}.gpx`, { type: 'application/gpx+xml' });
+            
+            // Se siamo su Android (o browser compatibile), usa il menu di Condivisione Nativo
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Esporta Rotta GPX',
+                        text: 'Tracciato registrato con Poseidon'
+                    });
+                } catch (error) {
+                    console.log('Condivisione annullata dall\'utente', error);
+                }
+            } else {
+                // Alternativa di emergenza per PC / GitHub Pages
+                const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Poseidon_Rotta.gpx`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+    </script>
 </body>
 </html>
