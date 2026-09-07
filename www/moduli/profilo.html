@@ -66,7 +66,7 @@
         </div>
 
         <!-- Dashboard Utente Loggato -->
-        <div id="profilo-container" class="hidden">
+        <div id="profilo-container" style="display: none;">
             <div style="text-align: center;">
                 <h3 style="color: #4ade80; margin-bottom: 5px;">Bentornato, Comandante! ⛵</h3>
                 <p style="color: #94a3b8; font-size: 0.9rem;">Connesso come: <b id="testo-email-utente" style="color: #f8fafc;"></b></p>
@@ -128,6 +128,20 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
+        function ottieniPosizioneGPS() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve({ lat: "Non supportato", lng: "Non supportato" });
+                } else {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+                        (error) => resolve({ lat: "Permesso negato", lng: "Permesso negato" }),
+                        { enableHighAccuracy: true, timeout: 6000 }
+                    );
+                }
+            });
+        }
+
         async function effettuaAccesso() {
             const email = document.getElementById('auth-email').value.trim();
             const pass = document.getElementById('auth-password').value;
@@ -138,9 +152,17 @@
             const hashedPassword = await sha256(pass);
 
             try {
+                const posizione = await ottieniPosizioneGPS();
+                
                 const response = await fetch(API_URL, {
                     method: "POST",
-                    body: JSON.stringify({ azione: "login", email: email, passwordHash: hashedPassword })
+                    body: JSON.stringify({ 
+                        azione: "login", 
+                        email: email, 
+                        passwordHash: hashedPassword,
+                        lat: posizione.lat,
+                        lng: posizione.lng
+                    })
                 });
                 const risultato = await response.json();
 
@@ -173,9 +195,17 @@
             const hashedPassword = await sha256(pass);
 
             try {
+                const posizione = await ottieniPosizioneGPS();
+
                 const response = await fetch(API_URL, {
                     method: "POST",
-                    body: JSON.stringify({ azione: "registrazione", email: email, passwordHash: hashedPassword })
+                    body: JSON.stringify({ 
+                        azione: "registrazione", 
+                        email: email, 
+                        passwordHash: hashedPassword,
+                        lat: posizione.lat,
+                        lng: posizione.lng
+                    })
                 });
                 const risultato = await response.json();
 
@@ -188,14 +218,14 @@
         }
 
         function mostraStatoUtente(email) {
-            document.getElementById('form-container').classList.add('hidden');
-            document.getElementById('profilo-container').classList.remove('hidden');
-            document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Poseidon";
-            document.getElementById('testo-email-utente').textContent = email;
-            
-            aggiornaStatistiche();
-            aggiornaListaTracce(email);
-        }
+      document.getElementById('form-container').style.display = 'none';
+      document.getElementById('profilo-container').style.display = 'block';
+      document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
+      document.getElementById('testo-email-utente').textContent = email;
+    
+    aggiornaStatistiche();
+    aggiornaListaTracce(email);
+}
 
         function aggiornaStatistiche() {
             // Conta le voci nel Logbook
@@ -212,32 +242,47 @@
             document.getElementById('profilo-base').value = localStorage.getItem('profilo_base') || "";
         }
 
-        function salvaDatiProfilo() {
-            const qualifica = document.getElementById('profilo-qualifica').value;
-            const barca = document.getElementById('profilo-barca').value;
-            const base = document.getElementById('profilo-base').value;
+        async function salvaDatiProfilo() {
+    const email = localStorage.getItem('plancia_utente');
+    const qualifica = document.getElementById('profilo-qualifica').value;
+    const barca = document.getElementById('profilo-barca').value;
+    const base = document.getElementById('profilo-base').value;
 
-            // Salva in locale
-            localStorage.setItem('profilo_qualifica', qualifica);
-            localStorage.setItem('profilo_barca', barca);
-            localStorage.setItem('profilo_base', base);
+    // Salvataggio offline istantaneo sul dispositivo
+    localStorage.setItem('profilo_qualifica', qualifica);
+    localStorage.setItem('profilo_barca', barca);
+    localStorage.setItem('profilo_base', base);
 
-            // Sincronizza col cloud (usando la funzione in index.html)
-            if (window.parent && window.parent.sincronizzaConCloud) {
-                const datiProfilo = { qualifica: qualifica, barca: barca, base: base };
-                window.parent.sincronizzaConCloud('profilo_utente', datiProfilo);
-            }
-        }
+    // Se l'utente non ha fatto l'accesso, si ferma al salvataggio locale
+    if (!email) return;
+
+    // Invio diretto al "cloud" (Google Sheets)
+    try {
+        await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+                azione: "salva_profilo",
+                email: email,
+                qualifica: qualifica,
+                barca: barca,
+                base: base
+            })
+        });
+        console.log("Profilo inviato al database.");
+    } catch (e) {
+        console.error("Errore di rete durante la sincronizzazione.");
+    }
+}
 
         function esciAccount() {
-            localStorage.removeItem('plancia_utente');
-            document.getElementById('form-container').classList.remove('hidden');
-            document.getElementById('profilo-container').classList.add('hidden');
-            document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
-            document.getElementById('auth-email').value = "";
-            document.getElementById('auth-password').value = "";
-            document.getElementById('auth-status').textContent = "";
-        }
+    localStorage.removeItem('plancia_utente');
+    document.getElementById('form-container').style.display = 'block';
+    document.getElementById('profilo-container').style.display = 'none';
+    document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
+    document.getElementById('auth-email').value = "";
+    document.getElementById('auth-password').value = "";
+    document.getElementById('auth-status').textContent = "";
+}
 
         // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---
         function aggiornaListaTracce(email) {
