@@ -2,72 +2,158 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <!-- Librerie CSS e JS di Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #0f172a; }
+        
+        /* Mappa 100% schermo */
         #mappa-container { 
-            height: 500px; 
-            width: 100%; 
-            border-radius: 8px; 
-            border: 2px solid #334155; 
-            z-index: 1;
-            cursor: crosshair; /* Cambia il cursore per far capire che si può cliccare */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
         }
-        .dashboard-rotta {
-            background: #0f172a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        /* Head-Up Display (HUD) */
+        .hud-top {
+            position: absolute; top: 15px; left: 15px; right: 15px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px); border: 1px solid #334155;
+            border-radius: 12px; padding: 12px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        .dato-rotta {
-            font-size: 1.5rem;
-            color: #38bdf8;
-            font-weight: bold;
+        .hud-box { text-align: center; flex: 1; border-right: 1px solid #334155; }
+        .hud-box:last-child { border-right: none; }
+        .hud-label { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; }
+        .hud-value { font-size: 1.8rem; font-weight: bold; font-family: monospace; }
+        
+        #distanza-totale { color: #38bdf8; } /* Azzurro */
+        #velocita-attuale { color: #4ade80; } /* Verde */
+        #tempo-trascorso { color: #facc15; } /* Giallo */
+
+        /* Floating Action Buttons (FAB) */
+        .fab-container {
+            position: absolute; bottom: 30px; right: 20px;
+            display: flex; flex-direction: column; gap: 15px; z-index: 1000;
+        }
+        .fab-btn {
+            width: 60px; height: 60px; border-radius: 50%; border: none;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; color: white; cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+        .fab-btn:active { transform: scale(0.92); }
+        #btn-center { background: #3b82f6; }
+        #btn-naviga { background: #22c55e; }
+        #btn-naviga.active { background: #ef4444; } /* Rosso quando registra */
+
+        /* Bottom Sheet (Pannello Salvataggio) */
+        .bottom-sheet {
+            position: absolute; bottom: -100%; left: 0; right: 0;
+            background: #1e293b; padding: 25px 20px;
+            border-radius: 20px 20px 0 0; z-index: 2000;
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .bottom-sheet.open { bottom: 0; }
+        .sheet-title { color: white; font-size: 1.3rem; font-weight: bold; text-align: center; }
+        .sheet-buttons { display: flex; gap: 15px; margin-top: 10px; }
+        .sheet-btn {
+            flex: 1; padding: 15px; border-radius: 12px; border: none;
+            font-size: 1rem; font-weight: bold; color: white; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <h1>Mappa & Rotte 🌍</h1>
-    <div class="subtitle">Plotter Cartografico e Calcolo Distanze</div>
+    <!-- Mappa -->
+    <div id="mappa-container"></div>
 
-    <!-- Pannello di controllo superiore -->
-    <div class="dashboard-rotta" style="flex-wrap: wrap; gap: 10px;">
-        <div style="flex: 1; min-width: 80px;">
-            <span style="color: #94a3b8; font-size: 0.8rem;">Distanza</span><br>
-            <span class="dato-rotta" id="distanza-totale">0.00</span> <span style="color: #38bdf8; font-size: 0.9rem;">Nm</span>
+    <!-- HUD Superiore -->
+    <div class="hud-top">
+        <div class="hud-box">
+            <div class="hud-label">Dist (Nm)</div>
+            <div class="hud-value" id="distanza-totale">0.00</div>
         </div>
-        <div style="flex: 1; min-width: 80px;">
-            <span style="color: #94a3b8; font-size: 0.8rem;">Velocità</span><br>
-            <span class="dato-rotta" id="velocita-attuale" style="color: #22c55e;">0.0</span> <span style="color: #22c55e; font-size: 0.9rem;">Kn</span>
+        <div class="hud-box">
+            <div class="hud-label">SOG (Kn)</div>
+            <div class="hud-value" id="velocita-attuale">0.0</div>
         </div>
-        <div style="flex: 1; min-width: 80px;">
-            <span style="color: #94a3b8; font-size: 0.8rem;">Tempo</span><br>
-            <span class="dato-rotta" id="tempo-trascorso" style="color: #facc15; font-size: 1.2rem;">00:00</span>
-        </div>
-        <div style="display: flex; gap: 8px; width: 100%; margin-top: 10px;">
-            <button class="btn-action" id="btn-naviga" style="background: #22c55e; flex: 2; padding: 12px; font-size: 1rem; font-weight: bold;" onclick="toggleNavigazione()">▶ Inizia Navigazione</button>
-            <button class="btn-action" style="background: #3b82f6; flex: 1; padding: 12px; font-size: 1rem;" onclick="salvaRottaManuale()">💾 Salva</button>
-            <button class="btn-action" style="background: #ef4444; flex: 1; padding: 12px; font-size: 1rem;" onclick="cancellaRotta()">🗑️</button>
+        <div class="hud-box">
+            <div class="hud-label">Tempo</div>
+            <div class="hud-value" id="tempo-trascorso">00:00</div>
         </div>
     </div>
 
-    <!-- Contenitore Mappa -->
-    <div class="panel">
-        <div id="mappa-container"></div>
-        <p style="color: #94a3b8; font-size: 0.85rem; text-align: center; margin-top: 10px;">
-            ℹ️ Clicca in sequenza sulla mappa per tracciare i waypoint.
-        </p>
+    <!-- Controlli Mappa (FAB) -->
+    <div class="fab-container">
+        <!-- Bottone Pianificazione Manuale -->
+        <button class="fab-btn" id="btn-center" onclick="salvaRottaManuale()" style="background: #8b5cf6; width: 45px; height: 45px; font-size: 1.3rem; margin-left: auto; margin-bottom: 5px;">
+            <i class="ph ph-floppy-disk"></i>
+        </button>
+        <!-- Centra Posizione -->
+        <button class="fab-btn" id="btn-center" onclick="centraMappa()">
+            <i class="ph ph-crosshair"></i>
+        </button>
+        <!-- Play / Stop GPS -->
+        <button class="fab-btn" id="btn-naviga" onclick="interruttoreNavigazione()">
+            <i class="ph ph-play" id="icona-naviga"></i>
+        </button>
+    </div>
+
+    <!-- Pannello di Chiusura -->
+    <div class="bottom-sheet" id="sheet-salvataggio">
+        <div class="sheet-title">Navigazione in Pausa ⚓</div>
+        <div style="color: #94a3b8; text-align: center; font-size: 0.95rem;">
+            Seleziona un'azione per chiudere l'itinerario.
+        </div>
+        <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
+            <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in Profilo</button>
+        </div>
     </div>
 
     <script src="../js/mappa-module.js"></script>
+    <script>
+        // Logica grafica dei pulsanti
+        let uiInNavigazione = false;
+
+        function interruttoreNavigazione() {
+            const btn = document.getElementById('btn-naviga');
+            const icona = document.getElementById('icona-naviga');
+            
+            if (!uiInNavigazione) {
+                // START NAV
+                uiInNavigazione = true;
+                btn.classList.add('active');
+                icona.className = "ph ph-stop";
+                window.avviaGPS(); 
+            } else {
+                // STOP NAV (Mostra pannello)
+                uiInNavigazione = false;
+                btn.classList.remove('active');
+                icona.className = "ph ph-play";
+                window.fermaGPS(); 
+                document.getElementById('sheet-salvataggio').classList.add('open');
+            }
+        }
+
+        function confermaSalvataggio() {
+            document.getElementById('sheet-salvataggio').classList.remove('open');
+            window.salvaRotta();
+        }
+
+        function scartaRotta() {
+            document.getElementById('sheet-salvataggio').classList.remove('open');
+            window.cancellaRotta();
+        }
+    </script>
 </body>
 </html>

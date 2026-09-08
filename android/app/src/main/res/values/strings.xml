@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Poseidon</string>
-    <string name="title_activity_main">Navigazione</string>
+    <string name="title_activity_main">Poseidon</string>
     <string name="package_name">com.lucaguermandi.poseidon</string>
     <string name="custom_url_scheme">com.lucaguermandi.poseidon</string>
 </resources>
