@@ -16,8 +16,10 @@
     let startTime = null;
     let timerInterval = null;
     let gpsTrack = [];
-    let liveRotta = L.polyline([], {color: '#22c55e', weight: 4}).addTo(map); // Linea verde per il GPS
+    let puntiTracciato = []; // Array dedicato per salvare i dati completi per il profilo
+    let liveRotta = L.polyline([], {color: '#22c55e', weight: 4}).addTo(map); 
     let liveDistanzaNm = 0;
+    let wakeLock = null;
 
     // --- 1. PLOTTER MANUALE (Attivo solo se il GPS è spento) ---
     map.on('click', function (e) {
@@ -60,65 +62,87 @@
     }
 
     // --- 2. TRACCIAMENTO GPS SATELLITARE ---
+    // Aggiungi queste variabili in alto, vicino alle altre
+    let bgWatcherId = null;
+    const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
+
+    // --- NUOVO TRACCIAMENTO IBRIDO (Background + Web) ---
     function toggleNavigazione() {
         const btn = document.getElementById("btn-naviga");
 
         if (!inNavigazione) {
-            // Avvia la registrazione in background
             inNavigazione = true;
             gpsTrack = [];
+            puntiTracciato = []; 
             liveDistanzaNm = 0;
             liveRotta.setLatLngs([]);
-            cancellaRotta(); // Pulisce i waypoint manuali per fare spazio al GPS
+            cancellaRotta(); 
 
             btn.innerHTML = "⏹ Ferma Navigazione";
             btn.style.background = "#ef4444";
-
             startTime = Date.now();
             timerInterval = setInterval(aggiornaTimer, 1000);
 
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    aggiornaPosizione,
-                    (err) => console.error("Errore GPS:", err),
-                    { enableHighAccuracy: true, maximumAge: 0 }
-                );
+            if (isNativo) {
+                // Sull'APK Android: Avvia il servizio in background con notifica di sistema fissa
+                window.Capacitor.Plugins.BackgroundGeolocation.addWatcher({
+                    backgroundTitle: "Poseidon Navigazione",
+                    backgroundMessage: "Registrazione rotta in corso. L'app sta funzionando in background.",
+                    requestPermissions: true,
+                    stale: false,
+                    distanceFilter: 2 // Registra un punto ogni 2 metri
+                }, function(location, error) {
+                    if (!error) elaboraCoordinate(location.latitude, location.longitude, location.speed);
+                }).then(id => { bgWatcherId = id; });
             } else {
-                alert("Il segnale GPS non è supportato da questo dispositivo.");
+                // Sul PC: Usa il classico tracciamento web 
+                if (navigator.geolocation) {
+                    watchId = navigator.geolocation.watchPosition(
+                        (pos) => elaboraCoordinate(pos.coords.latitude, pos.coords.longitude, pos.coords.speed),
+                        (err) => console.warn("Attesa segnale GPS...", err),
+                        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+                    );
+                } else {
+                    alert("Sensore GPS non trovato.");
+                }
             }
         } else {
-            // Ferma la Navigazione e salva i dati
             inNavigazione = false;
             btn.innerHTML = "▶ Inizia Navigazione";
             btn.style.background = "#22c55e";
 
             clearInterval(timerInterval);
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+
+            // Spegne il GPS in base alla piattaforma
+            if (isNativo && bgWatcherId) {
+                window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
+                bgWatcherId = null;
+            } else if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
 
             salvaRotta();
         }
     }
 
-    function aggiornaPosizione(pos) {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const speedKnots = (pos.coords.speed || 0) * 1.94384; 
-
+    // Funzione universale che elabora i punti satellitari per entrambi i sistemi
+    function elaboraCoordinate(lat, lng, speedMs) {
+        const speedKnots = (speedMs || 0) * 1.94384; 
+        const time = new Date().toISOString();
         const nuovoPunto = L.latLng(lat, lng);
 
         if (gpsTrack.length > 0) {
             const ultimoPunto = gpsTrack[gpsTrack.length - 1];
-            const distNm = ultimoPunto.distanceTo(nuovoPunto) / 1852;
-            liveDistanzaNm += distNm;
+            liveDistanzaNm += (ultimoPunto.distanceTo(nuovoPunto) / 1852);
         }
 
         gpsTrack.push(nuovoPunto);
         liveRotta.addLatLng(nuovoPunto);
-        map.panTo(nuovoPunto); // Mantiene il focus sulla tua posizione
+        map.panTo(nuovoPunto); 
+
+        puntiTracciato.push({ lat: lat, lon: lng, vel: speedKnots, time: time });
 
         document.getElementById("distanza-totale").innerText = liveDistanzaNm.toFixed(2);
-        
-        // Se i contatori sono presenti in pagina, li aggiorna
         const nodoVelocita = document.getElementById("velocita-attuale");
         if (nodoVelocita) nodoVelocita.innerText = speedKnots.toFixed(1);
     }
@@ -132,22 +156,27 @@
     }
 
     function salvaRotta() {
-        if (liveDistanzaNm <= 0.01) return; // Non salva tracciati falsi o inattivi
+        if (puntiTracciato.length < 2) {
+            alert("Rotta troppo breve per essere salvata.");
+            return; 
+        }
 
-        const diffMin = Math.floor((Date.now() - startTime) / 60000);
-        const oggi = new Date().toLocaleDateString('it-IT');
+        const oggi = new Date();
+        const dataFormattata = oggi.toLocaleDateString('it-IT') + " " + oggi.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
 
+        // Struttura corretta richiesta da profilo.html
         const nuovaRotta = {
-            data: oggi,
-            durata: diffMin,
-            distanza: liveDistanzaNm.toFixed(2)
+            id: Date.now(),
+            nome: "Rotta del " + dataFormattata,
+            data: dataFormattata,
+            punti: puntiTracciato 
         };
 
         const rotteEsistenti = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
         rotteEsistenti.push(nuovaRotta);
         localStorage.setItem("navigazione_rotte", JSON.stringify(rotteEsistenti));
 
-        alert("Navigazione terminata e dati salvati con successo nel Profilo.");
+        alert("Navigazione terminata. Rotta salvata nel Profilo e pronta per l'export in GPX!");
     }
 
     function cancellaRotta() {
@@ -156,14 +185,12 @@
             return;
         }
 
-        // Pulisce tutti i marker e le linee dal foglio
         map.eachLayer((layer) => {
             if (layer instanceof L.Polyline || layer instanceof L.CircleMarker) {
                 layer.remove();
             }
         });
 
-        // Resetta la cache manuale e reinizializza la linea verde per il GPS
         arrayWaypoint = [];
         lineaRotta = null;
         liveRotta = L.polyline([], {color: '#22c55e', weight: 4}).addTo(map);
@@ -175,7 +202,66 @@
         if (tTras) tTras.textContent = '00:00';
     }
 
-    // Rendiamo accessibili le funzioni all'HTML tramite l'oggetto window
+    function salvaRottaManuale() {
+        if (arrayWaypoint.length < 2) {
+            alert("Traccia almeno 2 punti sulla mappa per salvare una rotta pianificata.");
+            return;
+        }
+
+        const oggi = new Date();
+        const dataFormattata = oggi.toLocaleDateString('it-IT') + " " + oggi.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+
+        // Trasforma i clic manuali nel formato richiesto dal Profilo
+        const puntiFormattati = arrayWaypoint.map(wp => ({
+            lat: wp[0],
+            lon: wp[1],
+            vel: 0, // Nessuna velocità per le rotte tracciate a mano
+            time: new Date().toISOString()
+        }));
+
+        const nuovaRotta = {
+            id: Date.now(),
+            nome: "Rotta Pianificata a mano",
+            data: dataFormattata,
+            punti: puntiFormattati 
+        };
+
+        const rotteEsistenti = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
+        rotteEsistenti.push(nuovaRotta);
+        localStorage.setItem("navigazione_rotte", JSON.stringify(rotteEsistenti));
+
+        alert("Rotta pianificata salvata con successo nel Profilo!");
+    }
+    
+    async function mantieniSchermoAcceso() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Schermo bloccato: navigazione continua assicurata.');
+                
+                // Se riduci l'app a icona e poi la riapri, Android fa cadere il blocco.
+                // Questo comando lo riattiva automaticamente appena torni sull'app.
+                document.addEventListener('visibilitychange', async () => {
+                    if (wakeLock !== null && document.visibilityState === 'visible') {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                    }
+                });
+            } catch (err) {
+                console.error('Impossibile bloccare lo schermo:', err);
+            }
+        }
+    }
+
+    function rilasciaSchermo() {
+        if (wakeLock !== null) {
+            wakeLock.release().then(() => {
+                wakeLock = null;
+            });
+        }
+    }
+
+    // Esponi la funzione all'HTML
+    window.salvaRottaManuale = salvaRottaManuale;
     window.cancellaRotta = cancellaRotta;
     window.toggleNavigazione = toggleNavigazione;
 })();
