@@ -28,67 +28,122 @@ body {
 }
 
 /* =========================================
-   2. HEADER E MENU DI NAVIGAZIONE
+   2. HEADER E MENU (LAYOUT FLUIDO E DEFINITIVO)
 ========================================= */
-header {
-    background: var(--pannello);
-    width: 100%;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    box-sizing: border-box;
-    border-bottom: 1px solid var(--bordo-soft);
+
+/* Reset assoluto per annullare regole residue */
+nav, #menu-Poseidon {
+    display: flex !important; 
+    grid-template-columns: none !important;
+}
+
+#main-header {
+    background-color: var(--pannello) !important;
+    text-align: center !important;
+    padding: 15px !important;
+    z-index: 1000 !important;
+    border-bottom: 1px solid var(--bordo-soft) !important;
+    display: flex !important;
+    flex-direction: column !important; /* Impila il Logo sopra e il Menu sotto */
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 15px !important;
 }
 
 .logo {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--accento-ciano);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    letter-spacing: -0.5px;
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    color: var(--accento-ciano) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
 }
 
-nav {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    width: 100%;
-    max-width: 600px;
+/* --- MOBILE: BARRA INFERIORE FISSA --- */
+#menu-Poseidon {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background-color: var(--bg-profondo) !important;
+    flex-direction: row !important; /* Forza i tasti in orizzontale */
+    flex-wrap: nowrap !important; /* Impedisce assolutamente di andare a capo */
+    justify-content: space-around !important;
+    padding: 10px 0 !important;
+    margin: 0 !important;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.6) !important;
+    border-top: 1px solid var(--bordo-soft) !important;
 }
 
 .nav-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: var(--bg-profondo);
-    color: var(--testo-primario);
-    border: 1px solid var(--bordo-soft);
-    padding: 16px 8px;
-    border-radius: 14px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: transparent !important;
+    border: none !important;
+    color: var(--testo-secondario) !important;
+    display: flex !important;
+    flex-direction: column !important; /* Icona sopra, testo sotto */
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    flex: 1 !important; 
+    padding: 5px !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
 }
 
 .nav-btn i {
-    font-size: 1.2rem;
-    color: var(--accento-ciano);
+    font-size: 1.6rem !important;
+    margin-bottom: 4px !important;
 }
 
-.nav-btn:hover, .nav-btn:active, .nav-btn.active {
-    background: var(--pannello);
-    border-color: var(--accento-ciano);
-    transform: scale(0.97);
-    box-shadow: 0 0 12px rgba(14, 165, 233, 0.3);
+/* --- DESKTOP: MENU ORIZZONTALE SOTTO IL LOGO (Modulabile) --- */
+@media (min-width: 768px) {
+    #main-header {
+        padding: 20px 30px !important;
+    }
+
+    #menu-Poseidon {
+        position: static !important;
+        width: 100% !important;
+        max-width: 700px !important; /* Limita la larghezza massima per eleganza */
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border-top: none !important;
+        padding: 0 !important;
+        flex-direction: row !important; /* Mantiene i bottoni affiancati */
+        justify-content: space-between !important;
+        gap: 1.5vw !important; /* Spaziatura elastica tra i bottoni */
+    }
+
+    .nav-btn {
+        flex-direction: row !important; /* Icona a sinistra del testo */
+        justify-content: center !important;
+        gap: 0.5vw !important;
+        
+        /* MODULABILITÀ: Il font e il padding si ridimensionano con la finestra (minimo, ottimale, massimo) */
+        font-size: clamp(0.85rem, 1.2vw, 1.05rem) !important; 
+        padding: clamp(10px, 1.2vw, 14px) clamp(12px, 2vw, 25px) !important;
+        
+        background: var(--bg-profondo) !important;
+        border: 1px solid var(--bordo-soft) !important;
+        border-radius: 12px !important;
+        flex: 1 !important; /* I bottoni si stringono e allargano identici tra loro */
+    }
+
+    .nav-btn i {
+        margin-bottom: 0 !important;
+        font-size: clamp(1.1rem, 1.5vw, 1.4rem) !important; /* Anche l'icona è elastica */
+    }
+
+    .nav-btn.active {
+        background: var(--pannello) !important;
+        border-color: var(--accento-ciano) !important;
+        box-shadow: 0 0 10px rgba(14, 165, 233, 0.2) !important;
+    }
 }
+
 
 /* =========================================
    3. STRUTTURA SCHERMATE E IFRAME
@@ -266,97 +321,22 @@ input:focus {
     color: var(--accento-rosso);
 }
 
-/* --- MENU BOTTOM (MOBILE DEFAULT) --- */
-body {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    margin: 0;
-    overflow: hidden;
-}
-
-#main-header {
-    background-color: #1e293b;
-    text-align: center;
-    padding: 15px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    z-index: 1000;
-}
-
-main {
-    flex: 1;
-    overflow: hidden;
-    padding-bottom: 70px; /* Lascia spazio alla barra inferiore su mobile */
-}
-
-#menu-Poseidon {
-    position: fixed;
-    bottom: 0;
-    left: 0;
+/* --- INPUT TATTICI MAPPA --- */
+.tattica-input {
     width: 100%;
-    background-color: #0f172a;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px 0;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
-    z-index: 1000;
+    padding: 10px;
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: border-color 0.2s;
+}
+.tattica-input:focus {
+    border-color: #38bdf8;
+    outline: none;
 }
 
-.nav-btn {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 0.75rem;
-    cursor: pointer;
-    width: 33%;
-    transition: color 0.3s;
-}
-
-.nav-btn i {
-    font-size: 1.8rem;
-    margin-bottom: 4px;
-}
-
-.nav-btn.active {
-    color: #3b82f6; /* Azzurro luminoso per la pagina attiva */
-}
-
-/* --- MENU TOP (DESKTOP - Schermi larghi) --- */
-@media (min-width: 768px) {
-    #main-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 20px;
-        height: 70px;
-    }
-
-    main {
-        padding-bottom: 0; /* Rimuove lo spazio vuoto in basso su PC */
-    }
-
-    #menu-Poseidon {
-        position: static;
-        width: auto;
-        background-color: transparent;
-        box-shadow: none;
-        padding: 0;
-    }
-
-    .nav-btn {
-        flex-direction: row; /* Icona e testo affiancati */
-        gap: 8px;
-        font-size: 1rem;
-        padding: 10px 20px;
-        width: auto;
-    }
-
-    .nav-btn i {
-        margin-bottom: 0;
-        font-size: 1.4rem;
-    }
-}

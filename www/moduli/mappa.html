@@ -9,7 +9,8 @@
     <!-- Librerie CSS e JS di Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #0f172a; }
         
@@ -94,10 +95,6 @@
 
     <!-- Controlli Mappa (FAB) -->
     <div class="fab-container">
-        <!-- Bottone Pianificazione Manuale -->
-        <button class="fab-btn" id="btn-center" onclick="salvaRottaManuale()" style="background: #8b5cf6; width: 45px; height: 45px; font-size: 1.3rem; margin-left: auto; margin-bottom: 5px;">
-            <i class="ph ph-floppy-disk"></i>
-        </button>
         <!-- Centra Posizione -->
         <button class="fab-btn" id="btn-center" onclick="centraMappa()">
             <i class="ph ph-crosshair"></i>
@@ -117,6 +114,70 @@
         <div class="sheet-buttons">
             <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
             <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in Profilo</button>
+        </div>
+    </div>
+
+<!-- Pannello Pianificazione Tattica (Si apre tracciando a mano) -->
+    <!-- Cruscotto di Stampa (Visibile solo sul PDF) -->
+    <div id="print-header" style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 15px 30px; border-radius: 12px; z-index: 3000; color: white; text-align: center; border: 2px solid #38bdf8; min-width: 60%; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+        <h2 style="margin: 0 0 15px 0; color: #38bdf8; text-transform: uppercase;">Piano di Navigazione</h2>
+        <div style="display: flex; justify-content: space-between; font-size: 1.2rem;">
+            <div><span style="color: #94a3b8;">Distanza:</span> <b id="print-dist"></b></div>
+            <div><span style="color: #94a3b8;">Velocità Stimata:</span> <b id="print-vel"></b></div>
+            <div><span style="color: #94a3b8;">Tempo Arrivo (ETA):</span> <b id="print-tempo"></b></div>
+        </div>
+    </div>
+
+    
+    <!-- Pannello Pianificazione Tattica -->
+    <div class="bottom-sheet" id="sheet-pianificazione">
+        <div class="sheet-title">Pianificazione Tattica 🧭</div>
+        
+        <div style="display: flex; justify-content: space-between; margin: 10px 0; padding: 0 10px;">
+            <div style="text-align: center;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Distanza Tot.</div>
+                <div style="font-size: 1.4rem; font-weight: bold; color: #38bdf8;" id="plan-distanza">0.00 Nm</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Tempo (ETA)</div>
+                <div style="font-size: 1.4rem; font-weight: bold; color: #facc15;" id="plan-tempo">00h 00m</div>
+            </div>
+        </div>
+
+        <div style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="margin: 0; color: #f8fafc; font-size: 0.95rem;">Dati Meteomarini</h4>
+                <button class="btn-action" id="btn-meteo-rotta" data-stato="base" style="background: #3b82f6; padding: 6px 12px; font-size: 0.8rem;" onclick="scaricaMeteoRotta()">📡 Dati Reali API</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Vento (Nodi)</label>
+                    <input type="number" id="plan-vento-vel" value="8" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Vento (°)</label>
+                    <input type="number" id="plan-vento-dir" value="45" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Corrente (Nodi)</label>
+                    <input type="number" id="plan-corr-vel" value="0.5" step="0.1" oninput="calcolaTempoStimato()" class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Corr. (°)</label>
+                    <input type="number" id="plan-corr-dir" value="90" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Velocità Propulsiva stimata a vela (Nodi)</label>
+                <input type="number" id="plan-velocita" value="5.0" step="0.5" oninput="calcolaTempoStimato()" class="tattica-input" style="color: #4ade80; margin-top: 5px;">
+            </div>
+        </div>
+
+        <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #ef4444;" onclick="cancellaRotta()">🗑️ Pulisci</button>
+            <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano" onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
         </div>
     </div>
 
@@ -154,6 +215,14 @@
             document.getElementById('sheet-salvataggio').classList.remove('open');
             window.cancellaRotta();
         }
+
+        // Funzione per spegnere l'UI in caso di errore GPS
+        window.resetUINavigazione = function() {
+            uiInNavigazione = false;
+            document.getElementById('btn-naviga').classList.remove('active');
+            document.getElementById('icona-naviga').className = "ph ph-play";
+        };
+
     </script>
 </body>
 </html>

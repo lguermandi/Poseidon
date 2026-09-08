@@ -3,8 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palestra di Carteggio</title>
     <link rel="stylesheet" href="../css/style.css">
+    
+    <!-- Librerie Leaflet e PDF -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
+        body, html { margin: 0; padding: 0; background: #0f172a; overflow-x: hidden; }
+        
+        .header-carteggio { padding: 15px; text-align: center; background: #1e293b; border-bottom: 1px solid #334155; }
+        .header-carteggio h1 { margin: 0; color: #f8fafc; font-size: 1.5rem; }
+        .header-carteggio p { margin: 5px 0 0 0; color: #94a3b8; font-size: 0.9rem; }
+
+        /* Mappa e Controlli */
+        .mappa-wrapper { position: relative; width: 100%; height: 60vh; border-bottom: 2px solid #38bdf8; }
+        #mappa-5d { width: 100%; height: 100%; background: #e5e5e5; }
+        
+        .print-panel {
+            position: absolute; top: 10px; right: 10px; background: rgba(30, 41, 59, 0.9);
+            padding: 15px; border-radius: 8px; border: 1px solid #334155;
+            z-index: 1000; width: 260px; backdrop-filter: blur(5px);
+        }
+
+        .zona-selector {
+            width: 100%; padding: 8px; margin-bottom: 15px; background: #0f172a;
+            color: white; border: 1px solid #475569; border-radius: 4px;
+        }
+
+        /* Mirino Stampa A4 */
+        .mirino-stampa {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.05);
+            z-index: 500; pointer-events: none; display: none;
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.7);
+        }
+        .mirino-orizzontale { width: 842px; height: 595px; } /* Proporzioni A4 a 96dpi */
+        .mirino-verticale { width: 595px; height: 842px; }
+
+        /* Sezione Esercizi (Dal tuo codice originale) */
+        .sezione-esercizi { padding: 20px; max-width: 800px; margin: 0 auto; }
         .problema-box { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #38bdf8; }
         .soluzione-box { background: #064e3b; padding: 20px; border-radius: 8px; border-left: 4px solid #4ade80; }
         .dato { font-size: 1.2rem; font-weight: bold; color: #f8fafc; }
@@ -12,44 +52,157 @@
     </style>
 </head>
 <body>
-    <h1>Modulo Carteggio 📐</h1>
-    <div class="subtitle">Generatore Esercizi (Corrente e Scarroccio)</div>
 
-    <div class="panel" style="text-align: center;">
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px;">
-            Genera un problema casuale, risolvilo sulla carta nautica 5D e poi controlla se la tua somma vettoriale è corretta.
-        </p>
-        <button class="btn-action" onclick="generaProblema()">🎲 Genera Nuovo Problema</button>
+    <div class="header-carteggio">
+        <h1>📐 Palestra di Carteggio</h1>
+        <p>Genera la tua carta nautica in PDF ed esercitati con i vettori</p>
     </div>
 
-    <div class="panel hidden" id="pannello-problema">
-        <h3 style="color: #38bdf8;">Testo dell'Esercizio</h3>
-        <div class="problema-box" id="testo-problema"></div>
-        
-        <div style="text-align: center; margin-top: 15px;">
-            <button class="btn-action" style="background: #f59e0b;" onclick="mostraSoluzione()">Mostra Soluzione Corretta</button>
+    <!-- Modulo 1: Cartografia e PDF -->
+    <div class="mappa-wrapper" id="area-stampa-pdf">
+        <div id="mappa-5d"></div>
+        <div id="mirino" class="mirino-stampa"></div>
+
+        <div class="print-panel">
+            <select class="zona-selector" id="selettore-zona" onchange="cambiaZona()">
+                <option value="elba">Alto Tirreno (Isola d'Elba)</option>
+                <option value="adriatico">Nord Adriatico (Venezia)</option>
+                <option value="napoli">Golfo di Napoli e Capri</option>
+                <option value="maddalena">Sardegna (La Maddalena)</option>
+            </select>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <button class="btn-action" style="flex: 1; background: #3b82f6; padding: 8px; font-size: 0.85rem;" onclick="preparaStampa('orizzontale')">A4 Orizzontale</button>
+                <button class="btn-action" style="flex: 1; background: #6366f1; padding: 8px; font-size: 0.85rem;" onclick="preparaStampa('verticale')">A4 Verticale</button>
+            </div>
+            
+            <button class="btn-action hidden" id="btn-export" style="background: #10b981; width: 100%; font-size: 1rem;" onclick="generaPDF()">
+                📥 Genera PDF Stampabile
+            </button>
         </div>
     </div>
 
-    <div class="panel hidden" id="pannello-soluzione">
-        <h3 style="color: #4ade80;">Soluzione Vettoriale</h3>
-        <div class="soluzione-box" id="testo-soluzione"></div>
+    <!-- Modulo 2: Generatore Esercizi (Dal tuo file originale) -->
+    <div class="sezione-esercizi">
+        <div class="panel" style="text-align: center;">
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 15px;">
+                Stampa la carta, genera un problema casuale, risolvilo a mano e controlla i risultati.
+            </p>
+            <button class="btn-action" onclick="generaProblema()">🎲 Genera Nuovo Problema</button>
+        </div>
+
+        <div class="panel hidden" id="pannello-problema">
+            <h3 style="color: #38bdf8;">Testo dell'Esercizio</h3>
+            <div class="problema-box" id="testo-problema"></div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-action" style="background: #f59e0b;" onclick="mostraSoluzione()">Mostra Soluzione Corretta</button>
+            </div>
+        </div>
+
+        <div class="panel hidden" id="pannello-soluzione">
+            <h3 style="color: #4ade80;">Soluzione Vettoriale</h3>
+            <div class="soluzione-box" id="testo-soluzione"></div>
+        </div>
     </div>
 
     <script>
+        // --- LOGICA MAPPA E RETICOLO ---
+        const zoneCoordinate = {
+            elba: [42.800, 10.300],
+            adriatico: [45.400, 13.000],
+            napoli: [40.700, 14.200],
+            maddalena: [41.250, 9.400]
+        };
+
+        const map = L.map('mappa-5d', { center: zoneCoordinate.elba, zoom: 10, zoomControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+        L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+        // Generatore Griglia Lat/Lon personalizzato
+        let grigliaLayer = L.layerGroup().addTo(map);
+
+        function disegnaGriglia() {
+            grigliaLayer.clearLayers();
+            const bounds = map.getBounds();
+            const zoom = map.getZoom();
+            
+            // Definisce l'intervallo della griglia in gradi a seconda dello zoom
+            let step = 0.1; // default per zoom ravvicinato (circa 6 miglia)
+            if (zoom < 9) step = 0.5;
+            else if (zoom < 11) step = 0.2; // circa 12 miglia
+
+            // Disegna Paralleli (Latitudine)
+            let latStart = Math.floor(bounds.getSouth() / step) * step;
+            for (let lat = latStart; lat <= bounds.getNorth(); lat += step) {
+                L.polyline([[lat, -180], [lat, 180]], { color: '#64748b', weight: 1, dashArray: '4,4', opacity: 0.6 }).addTo(grigliaLayer);
+            }
+
+            // Disegna Meridiani (Longitudine)
+            let lonStart = Math.floor(bounds.getWest() / step) * step;
+            for (let lon = lonStart; lon <= bounds.getEast(); lon += step) {
+                L.polyline([[-90, lon], [90, lon]], { color: '#64748b', weight: 1, dashArray: '4,4', opacity: 0.6 }).addTo(grigliaLayer);
+            }
+        }
+        
+        map.on('moveend', disegnaGriglia);
+        disegnaGriglia(); // Prima esecuzione
+
+        function cambiaZona() {
+            const zonaSelezionata = document.getElementById('selettore-zona').value;
+            map.setView(zoneCoordinate[zonaSelezionata], 10);
+            document.getElementById('mirino').style.display = 'none';
+            document.getElementById('btn-export').classList.add('hidden');
+        }
+
+        // --- LOGICA ESPORTAZIONE PDF ---
+        let formatoAttuale = '';
+
+        function preparaStampa(formato) {
+            formatoAttuale = formato;
+            const mirino = document.getElementById('mirino');
+            mirino.className = `mirino-stampa mirino-${formato}`;
+            mirino.style.display = 'block';
+            document.getElementById('btn-export').classList.remove('hidden');
+            
+            // Centra visivamente la mappa dentro il mirino
+            map.invalidateSize();
+        }
+
+        function generaPDF() {
+            const btnExport = document.getElementById('btn-export');
+            btnExport.innerHTML = "⏳ Generazione in corso...";
+            
+            // Nasconde UI non necessaria
+            document.querySelector('.print-panel').style.display = 'none';
+            document.getElementById('mirino').style.boxShadow = 'none';
+            document.getElementById('mirino').style.border = 'none';
+
+            const element = document.getElementById('area-stampa-pdf'); 
+            const opt = {
+                margin:       0,
+                filename:     `Carta_Nautica_Esercitazione_${new Date().getTime()}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: formatoAttuale === 'orizzontale' ? 'landscape' : 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.querySelector('.print-panel').style.display = 'block';
+                document.getElementById('mirino').style.boxShadow = '0 0 0 9999px rgba(15, 23, 42, 0.7)';
+                document.getElementById('mirino').style.border = '2px solid #ef4444';
+                btnExport.innerHTML = "📥 Genera PDF Stampabile";
+            });
+        }
+
+        // --- LOGICA GENERATORE ESERCIZI (Dal codice utente) ---
         let pv, vp, lsc, dc, vc;
 
         function generaProblema() {
-            // 1. Genera dati casuali ma realistici per la Navigazione
-            pv = Math.floor(Math.random() * 360); // Prora Vera (0-359)
-            vp = (Math.random() * (8 - 4) + 4).toFixed(1); // Velocità Propulsiva (4.0 - 8.0 kn)
-            
-            // Scarroccio (+/- 15 gradi max)
+            pv = Math.floor(Math.random() * 360); 
+            vp = (Math.random() * (8 - 4) + 4).toFixed(1); 
             lsc = Math.floor(Math.random() * 31) - 15; 
-            
-            // Dati Corrente
-            dc = Math.floor(Math.random() * 360); // Direzione Corrente
-            vc = (Math.random() * (3 - 0.5) + 0.5).toFixed(1); // Velocità Corrente (0.5 - 3.0 kn)
+            dc = Math.floor(Math.random() * 360); 
+            vc = (Math.random() * (3 - 0.5) + 0.5).toFixed(1); 
 
             const testo = `
                 Una imbarcazione naviga con Prora Vera (Pv) = <span class="dato">${pv}°</span> 
@@ -66,32 +219,23 @@
         }
 
         function mostraSoluzione() {
-            // 1. Calcolo Rotta Vera in Superficie (Rvs)
             let rvs = pv + lsc;
             if (rvs >= 360) rvs -= 360;
             if (rvs < 0) rvs += 360;
 
-            // 2. Scomposizione Vettoriale (Trigonometria pura per massima precisione)
-            // Convertiamo i gradi in radianti per le funzioni Math.sin e Math.cos
             const radRvs = rvs * (Math.PI / 180);
             const radDc = dc * (Math.PI / 180);
 
-            // Troviamo le coordinate Nord/Est del vettore Vp
             const vpN = vp * Math.cos(radRvs);
             const vpE = vp * Math.sin(radRvs);
-            
-            // Troviamo le coordinate Nord/Est del vettore Corrente
             const vcN = vc * Math.cos(radDc);
             const vcE = vc * Math.sin(radDc);
 
-            // Sommiamo le componenti per ottenere il vettore Effettivo
             const veffN = vpN + vcN;
             const veffE = vpE + vcE;
 
-            // Teorema di Pitagora per la lunghezza (Velocità Effettiva)
             const veff = Math.sqrt(Math.pow(veffN, 2) + Math.pow(veffE, 2)).toFixed(2);
 
-            // Arcotangente per trovare l'angolo (Rotta Vera)
             let rv = Math.atan2(veffE, veffN) * (180 / Math.PI);
             if (rv < 0) rv += 360;
             rv = Math.round(rv);

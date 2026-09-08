@@ -9,30 +9,29 @@
         .valore-gigante { font-size: 3rem; font-weight: bold; margin: 15px 0; }
         .meteo-label { font-size: 1.2rem; color: #94a3b8; }
         .hidden { display: none !important; }
+        .sentinella-input { width: 100%; padding: 10px; background: #1e293b; color: #f8fafc; border: 1px solid #475569; border-radius: 6px; box-sizing: border-box; margin-top: 5px; }
+        .sentinella-group { margin-bottom: 15px; text-align: left; }
     </style>
 </head>
 <body>
 
     <h1>Meteo e Stato del Mare 🌊</h1>
-    <div class="subtitle">Dati satellitari in tempo reale (Open-Meteo API)</div>
+    <div class="subtitle">Dati satellitari in tempo reale e Allarmi</div>
 
-    <!-- Pannello Ricerca GPS -->
-    <div class="panel" style="text-align: center; margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
-        <p style="color: #94a3b8; margin-bottom: 15px;">Interroga i server meteorologici usando le tue coordinate attuali.</p>
-        <button class="btn-action" id="btn-gps" onclick="ottieniMeteoGPS()">📍 Rileva Posizione e Scarica Dati</button>
+    <!-- Pannello Ricerca GPS Live -->
+    <div class="panel" style="text-align: center; margin-bottom: 20px;">
+        <p style="color: #94a3b8; margin-bottom: 15px;">Meteo istantaneo sulle tue coordinate attuali.</p>
+        <button class="btn-action" id="btn-gps" onclick="ottieniMeteoGPS()">📍 Rileva Posizione Live</button>
         <p id="stato-gps" style="margin-top: 15px; color: #fb923c; font-size: 0.95rem; font-family: monospace;"></p>
     </div>
 
-    <!-- Pannelli Risultati (Nascosti di default) -->
+    <!-- Risultati Live -->
     <div class="panel-container hidden" id="dati-meteo">
-        <!-- Riquadro Vento -->
         <div class="panel meteo-box">
             <h3 style="color: #38bdf8; margin-bottom: 0;">💨 Vento in Superficie</h3>
             <div class="valore-gigante" id="vento-velocita" style="color: #38bdf8;">-- kn</div>
             <div class="meteo-label" id="vento-direzione">Direzione: --°</div>
         </div>
-
-        <!-- Riquadro Onde -->
         <div class="panel meteo-box">
             <h3 style="color: #4ade80; margin-bottom: 0;">🌊 Moto Ondoso</h3>
             <div class="valore-gigante" id="onda-altezza" style="color: #4ade80;">-- m</div>
@@ -41,44 +40,100 @@
         </div>
     </div>
 
+    <div style="border-top: 1px solid #334155; margin: 30px 0;"></div>
+
+    <!-- Pannello Configurazione Multi-Radar Sentinella -->
+    <div class="panel" style="background: #0f172a; border: 1px solid #38bdf8;">
+        <h3 style="color: #38bdf8; text-align: center; margin-top: 0;">Radar Sentinella (Gestione Multi-Avviso)</h3>
+        <p style="color: #94a3b8; font-size: 0.85rem; text-align: center; margin-bottom: 20px;">Crea e monitora più località con soglie di vento e onde differenti.</p>
+
+        <div class="sentinella-group">
+            <label style="color: #94a3b8; font-size: 0.8rem;">Spot / Località (es. Riccione, Ravenna...)</label>
+            <input type="text" id="alert-localita" class="sentinella-input" value="Riccione" onchange="convertiCittaoCoordinate()">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="sentinella-group">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Latitudine</label>
+                <input type="number" id="alert-lat" class="sentinella-input" value="44.006" step="0.001">
+            </div>
+            <div class="sentinella-group">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Longitudine</label>
+                <input type="number" id="alert-lon" class="sentinella-input" value="12.657" step="0.001">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="sentinella-group">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Vento Min (Nodi)</label>
+                <input type="number" id="alert-vento-min" class="sentinella-input" value="8">
+            </div>
+            <div class="sentinella-group">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Vento Max (Nodi)</label>
+                <input type="number" id="alert-vento-max" class="sentinella-input" value="22">
+            </div>
+        </div>
+
+        <div class="sentinella-group">
+            <label style="color: #94a3b8; font-size: 0.8rem;">Altezza Massima Onda (Metri)</label>
+            <input type="number" id="alert-onda-max" class="sentinella-input" value="0.4" step="0.1">
+        </div>
+
+        <div class="sentinella-group">
+            <label style="color: #94a3b8; font-size: 0.8rem;">Indirizzo Email Avvisi</label>
+            <input type="email" id="alert-email" class="sentinella-input" placeholder="tua@email.it">
+        </div>
+
+        <div class="sentinella-group">
+            <label style="color: #94a3b8; font-size: 0.8rem;">Testo Personalizzato</label>
+            <textarea id="alert-testo" class="sentinella-input" rows="2">Condizioni ottimali per uscire in deriva!</textarea>
+        </div>
+
+        <button class="btn-action" id="btn-aggiungi-radar" style="background: #10b981; width: 100%; margin-top: 10px;" onclick="aggiungiRadar()">➕ Aggiungi e Sincronizza Avviso</button>
+
+        <!-- Elenco Avvisi Attivi -->
+        <div style="margin-top: 25px; border-top: 1px solid #334155; padding-top: 15px;">
+            <h4 style="color: #f8fafc; font-size: 0.95rem; margin-bottom: 10px;">Avvisi Attivi Memorizzati</h4>
+            <div id="lista-radar" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Generato dinamicamente via JS -->
+            </div>
+        </div>
+    </div>
+
     <script>
+        // URL FISSO DELLO SCRIPT GOOGLE
+        const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
+
+        // Funzione GPS Live
         async function ottieniMeteoGPS() {
             const stato = document.getElementById('stato-gps');
             const container = document.getElementById('dati-meteo');
-
             stato.textContent = "Aggancio satelliti GPS in corso...";
             stato.style.color = "#fb923c";
 
-            // 1. Controllo hardware
             if (!navigator.geolocation) {
                 stato.textContent = "Errore: Il tuo browser non supporta la geolocalizzazione.";
                 stato.style.color = "#ef4444";
                 return;
             }
 
-            // 2. Richiesta coordinate
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                
                 stato.textContent = `Coordinate (Lat: ${lat.toFixed(3)}, Lon: ${lon.toFixed(3)}). Connessione ai server...`;
 
                 try {
-                    // Chiamata 1: Vento (in Nodi)
                     const urlVento = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn`;
                     const resVento = await fetch(urlVento);
                     const dataVento = await resVento.json();
 
-                    // Chiamata 2: Onde Marine
                     const urlOnde = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period`;
                     const resOnde = await fetch(urlOnde);
                     const dataOnde = await resOnde.json();
 
-                    // 3. Scrittura dati a schermo
                     document.getElementById('vento-velocita').textContent = `${dataVento.current.wind_speed_10m} kn`;
                     document.getElementById('vento-direzione').textContent = `Direzione: ${dataVento.current.wind_direction_10m}°`;
 
-                    // Gestione sicurezza: se sei molto nell'entroterra, l'API marina restituisce "null"
                     if (dataOnde.current.wave_height !== null) {
                         document.getElementById('onda-altezza').textContent = `${dataOnde.current.wave_height} m`;
                         document.getElementById('onda-periodo').textContent = `Periodo: ${dataOnde.current.wave_period} s`;
@@ -89,7 +144,6 @@
                         document.getElementById('onda-direzione').textContent = `N/D`;
                     }
 
-                    // Mostra i riquadri e aggiorna lo stato
                     container.classList.remove('hidden');
                     stato.textContent = "✔ Dati meteorologici acquisiti con successo.";
                     stato.style.color = "#4ade80";
@@ -98,11 +152,116 @@
                     stato.textContent = "❌ Assenza di rete. Impossibile contattare i server Open-Meteo.";
                     stato.style.color = "#ef4444";
                 }
-
             }, (error) => {
-                stato.textContent = "❌ Permesso GPS negato. Attiva la localizzazione nel browser.";
+                stato.textContent = "❌ Permesso GPS negato. Attiva la localizzazione.";
                 stato.style.color = "#ef4444";
             });
+        }
+
+        // --- GESTIONE MULTI-RADAR SENTINELLA ---
+        window.onload = () => {
+            caricaListaRadar();
+        };
+
+        async function convertiCittaoCoordinate() {
+            const query = document.getElementById('alert-localita').value;
+            if(!query) return;
+            
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=it&format=json`);
+                const data = await res.json();
+                if(data.results && data.results.length > 0) {
+                    document.getElementById('alert-lat').value = data.results[0].latitude;
+                    document.getElementById('alert-lon').value = data.results[0].longitude;
+                }
+            } catch(e) {
+                console.error("Errore geocodifica", e);
+            }
+        }
+
+        function caricaListaRadar() {
+            const lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
+            const container = document.getElementById('lista-radar');
+            container.innerHTML = '';
+
+            if(lista.length === 0) {
+                container.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem; text-align: center;">Nessun avviso attivo.</p>';
+                return;
+            }
+
+            lista.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = "background: #1e293b; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #475569;";
+                div.innerHTML = `
+                    <div style="font-size: 0.85rem;">
+                        <b style="color: #38bdf8;">${item.localita}</b><br>
+                        <span style="color: #94a3b8;">Vento: ${item.ventoMin}-${item.ventoMax} kn | Onde: <${item.ondaMax}m</span>
+                    </div>
+                    <button onclick="cancellaRadar(${index})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Elimina</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function aggiungiRadar() {
+            const btn = document.getElementById('btn-aggiungi-radar');
+            const nuovoAvviso = {
+                id: Date.now(),
+                localita: document.getElementById('alert-localita').value,
+                lat: parseFloat(document.getElementById('alert-lat').value),
+                lon: parseFloat(document.getElementById('alert-lon').value),
+                ventoMin: parseFloat(document.getElementById('alert-vento-min').value),
+                ventoMax: parseFloat(document.getElementById('alert-vento-max').value),
+                ondaMax: parseFloat(document.getElementById('alert-onda-max').value),
+                email: document.getElementById('alert-email').value,
+                testo: document.getElementById('alert-testo').value
+            };
+
+            if(!nuovoAvviso.email) {
+                alert("Inserisci un indirizzo email valido.");
+                return;
+            }
+
+            let lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
+            lista.push(nuovoAvviso);
+            localStorage.setItem('meteo_sentinella_lista', JSON.stringify(lista));
+
+            caricaListaRadar();
+            btn.innerHTML = "⏳ Sincronizzazione con Google...";
+
+            try {
+                await fetch(WEBAPP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ azione: "aggiorna_radar", avvisi: lista })
+                });
+                
+                btn.innerHTML = "✅ Avviso Aggiunto e Sincronizzato";
+                setTimeout(() => { btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso"; }, 3000);
+            } catch (error) {
+                alert("Errore di connessione con lo script Google.");
+                btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso";
+            }
+        }
+
+        async function cancellaRadar(index) {
+            let lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
+            lista.splice(index, 1);
+            localStorage.setItem('meteo_sentinella_lista', JSON.stringify(lista));
+
+            caricaListaRadar();
+
+            try {
+                await fetch(WEBAPP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ azione: "aggiorna_radar", avvisi: lista })
+                });
+            } catch (error) {
+                console.error("Errore sincronizzazione cloud", error);
+            }
         }
     </script>
 </body>

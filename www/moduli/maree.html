@@ -4,65 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
+    
+    <!-- Libreria per il Grafico della Marea -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         .marea-box { background: #0f172a; padding: 20px; border-radius: 8px; border-left: 4px solid #38bdf8; margin-top: 20px; }
         .dato-marea { font-size: 1.5rem; font-weight: bold; color: #4ade80; }
         .tabella-dodicesimi { width: 100%; margin-top: 15px; border-collapse: collapse; }
         .tabella-dodicesimi th, .tabella-dodicesimi td { padding: 8px; text-align: center; border-bottom: 1px solid #334155; color: #f8fafc; }
         .tabella-dodicesimi th { color: #94a3b8; font-size: 0.9rem; }
+        
+        .semaforo-box {
+            margin-top: 20px; padding: 15px; border-radius: 8px; border: 2px solid;
+            text-align: center; font-size: 1.1rem; color: #f8fafc;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <h1>Calcolatore Maree 🌊</h1>
-    <div class="subtitle">Regola dei Dodicesimi per l'Esame</div>
+    <div class="subtitle">Analisi Grafica e Tirante d'Acqua</div>
 
     <div class="panel">
-        <div class="input-group">
-            <label>Ora Bassa Marea (es. 08:00)</label>
-            <input type="time" id="ora-bm" value="08:00">
+        <!-- Tasto Sincronizzazione API -->
+        <div style="text-align: center; margin-bottom: 25px;">
+            <button class="btn-action" id="btn-auto-maree" style="background: #3b82f6; width: 100%; padding: 15px; font-size: 1.1rem;" onclick="rilevaMareeLocali()">
+                📍 Rileva Maree Locali via GPS
+            </button>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 8px;">Connessione ai database oceanografici Open-Meteo</p>
         </div>
-        <div class="input-group">
-            <label>Livello Bassa Marea (metri)</label>
-            <input type="number" id="livello-bm" value="0.4" step="0.1">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="input-group">
+                <label>Ora Bassa (BM)</label>
+                <input type="time" id="ora-bm" value="08:00">
+            </div>
+            <div class="input-group">
+                <label>Livello BM (m)</label>
+                <input type="number" id="livello-bm" value="0.4" step="0.1">
+            </div>
+            <div class="input-group">
+                <label>Ora Alta (AM)</label>
+                <input type="time" id="ora-am" value="14:00">
+            </div>
+            <div class="input-group">
+                <label>Livello AM (m)</label>
+                <input type="number" id="livello-am" value="1.6" step="0.1">
+            </div>
         </div>
         
-        <div style="border-top: 1px solid #334155; margin: 15px 0;"></div>
+        <div style="border-top: 1px solid #334155; margin: 25px 0;"></div>
+        <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 15px;">Sicurezza: Tirante d'Acqua</h3>
 
         <div class="input-group">
-            <label>Ora Alta Marea (es. 14:00)</label>
-            <input type="time" id="ora-am" value="14:00">
+            <label>Profondità Carta (metri)</label>
+            <input type="number" id="prof-carta" value="0.5" step="0.1">
         </div>
-        <div class="input-group">
-            <label>Livello Alta Marea (metri)</label>
-            <input type="number" id="livello-am" value="1.6" step="0.1">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="input-group">
+                <label>Pescaggio (metri)</label>
+                <input type="number" id="pescaggio" value="0.97" step="0.01">
+            </div>
+            <div class="input-group">
+                <label>Ora di Passaggio</label>
+                <input type="time" id="ora-passaggio" value="11:00">
+            </div>
         </div>
 
-        <button class="btn-action" style="margin-top: 15px;" onclick="calcolaMarea()">📊 Calcola Andamento</button>
+        <button class="btn-action" style="margin-top: 15px; width: 100%;" onclick="calcolaMarea()">📊 Calcola Andamento e Sicurezza</button>
     </div>
 
     <!-- Risultati -->
     <div class="panel hidden" id="pannello-risultati">
         <h3 style="color: #38bdf8;">Analisi Marea</h3>
         
+        <!-- Grafico Sinusoidale -->
+        <div style="background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+            <canvas id="graficoMarea" height="150"></canvas>
+        </div>
+
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
             <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">Ampiezza (Escursione)</span><br>
+                <span style="color: #94a3b8; font-size: 0.9rem;">Ampiezza</span><br>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-ampiezza">0.0</span> m
             </div>
             <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">Valore 1/12</span><br>
+                <span style="color: #94a3b8; font-size: 0.9rem;">1/12</span><br>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-dodicesimo">0.0</span> m
             </div>
             <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">Durata Flusso</span><br>
+                <span style="color: #94a3b8; font-size: 0.9rem;">Durata</span><br>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-durata">0</span> h
             </div>
         </div>
 
+        <!-- Semaforo Tirante -->
+        <div id="semaforo-tirante" class="semaforo-box">
+            <!-- Calcolato via JS -->
+        </div>
+
         <div class="marea-box">
-            <h4 style="margin-top: 0; color: #94a3b8;">Tabella Oraria (Approssimazione)</h4>
+            <h4 style="margin-top: 0; color: #94a3b8;">Tabella Oraria (Regola Dodicesimi)</h4>
             <table class="tabella-dodicesimi" id="tabella-ore">
                 <!-- Generata dinamicamente in JS -->
             </table>
@@ -70,85 +114,220 @@
     </div>
 
     <script>
+        let mareaChart = null; // Variabile globale per il grafico
+
+        // --- 1. MOTORE SATELLITARE API CON FALLBACK ---
+        async function rilevaMareeLocali() {
+            const btn = document.getElementById('btn-auto-maree');
+            btn.innerHTML = "⏳ Ricerca satellitare...";
+            btn.style.background = "#f59e0b"; 
+
+            if (!navigator.geolocation) {
+                alert("Il sensore GPS non è supportato.");
+                ripristinaBottone(btn);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                let lat = pos.coords.latitude;
+                let lon = pos.coords.longitude;
+                btn.innerHTML = "📡 Elaborazione dati marini...";
+
+                try {
+                    let url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_level&timezone=auto`;
+                    let response = await fetch(url);
+
+                    if (!response.ok) {
+                        const usaCosta = confirm("Sei distante dal mare. Simulare la posizione sulla costa adriatica?");
+                        if (usaCosta) {
+                            lat = 44.200; lon = 12.900; 
+                            url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_level&timezone=auto`;
+                            response = await fetch(url);
+                            if (!response.ok) throw new Error("Errore API.");
+                        } else {
+                            ripristinaBottone(btn);
+                            return; 
+                        }
+                    }
+
+                    const data = await response.json();
+                    const orari = data.hourly.time.slice(0, 24);
+                    const livelli = data.hourly.sea_level.slice(0, 24);
+
+                    let maxLivello = -999, minLivello = 999;
+                    let oraAlta = "", oraBassa = "";
+
+                    for(let i = 0; i < 24; i++) {
+                        const liv = livelli[i];
+                        if(liv > maxLivello) { maxLivello = liv; oraAlta = orari[i]; }
+                        if(liv < minLivello) { minLivello = liv; oraBassa = orari[i]; }
+                    }
+
+                    const formattaOraAPI = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+                    document.getElementById('ora-bm').value = formattaOraAPI(oraBassa);
+                    document.getElementById('livello-bm').value = minLivello.toFixed(2);
+                    document.getElementById('ora-am').value = formattaOraAPI(oraAlta);
+                    document.getElementById('livello-am').value = maxLivello.toFixed(2);
+
+                    btn.innerHTML = "✅ Dati Sincronizzati";
+                    btn.style.background = "#10b981"; 
+                    calcolaMarea();
+                    setTimeout(() => { ripristinaBottone(btn); }, 4000);
+
+                } catch (error) {
+                    alert("Impossibile connettersi al server meteo.");
+                    ripristinaBottone(btn);
+                }
+            }, (err) => {
+                alert("Attiva il GPS per scaricare le maree locali.");
+                ripristinaBottone(btn);
+            }, { enableHighAccuracy: true });
+        }
+
+        function ripristinaBottone(btn) {
+            btn.innerHTML = "📍 Rileva Maree Locali via GPS";
+            btn.style.background = "#3b82f6";
+        }
+
+        // --- 2. CALCOLATORE MATEMATICO, GRAFICO E TIRANTE ---
         function calcolaMarea() {
             const oraBM = document.getElementById('ora-bm').value;
             const livBM = parseFloat(document.getElementById('livello-bm').value);
             const oraAM = document.getElementById('ora-am').value;
             const livAM = parseFloat(document.getElementById('livello-am').value);
+            
+            const profCarta = parseFloat(document.getElementById('prof-carta').value);
+            const pescaggio = parseFloat(document.getElementById('pescaggio').value);
+            const oraPassaggio = document.getElementById('ora-passaggio').value;
 
-            if (!oraBM || !oraAM || isNaN(livBM) || isNaN(livAM)) {
-                alert("Compila tutti i campi correttamente.");
+            if (!oraBM || !oraAM || !oraPassaggio || isNaN(livBM) || isNaN(livAM) || isNaN(profCarta) || isNaN(pescaggio)) {
+                alert("Compila tutti i campi numerici e gli orari.");
                 return;
             }
 
-            // Calcoli base
             const ampiezza = livAM - livBM;
             const unDodicesimo = ampiezza / 12;
 
-            // Calcolo ore
             let [hBM, mBM] = oraBM.split(':').map(Number);
             let [hAM, mAM] = oraAM.split(':').map(Number);
+            let [hPass, mPass] = oraPassaggio.split(':').map(Number);
             
             let minBM_tot = hBM * 60 + mBM;
             let minAM_tot = hAM * 60 + mAM;
+            let minPass_tot = hPass * 60 + mPass;
             
-            // Se l'alta marea è il giorno dopo
-            if (minAM_tot < minBM_tot) {
-                minAM_tot += 24 * 60;
-            }
+            if (minAM_tot < minBM_tot) minAM_tot += 24 * 60;
+            if (minPass_tot < minBM_tot && minPass_tot < minAM_tot - (24*60)) minPass_tot += 24 * 60;
 
             const durataMinuti = minAM_tot - minBM_tot;
             const durataOre = durataMinuti / 60;
-            
-            // Ogni "ora di marea" effettiva
             const stepMinuti = durataMinuti / 6; 
 
-            // Scrittura dei riassunti
             document.getElementById('res-ampiezza').textContent = ampiezza.toFixed(2);
             document.getElementById('res-dodicesimo').textContent = unDodicesimo.toFixed(3);
             document.getElementById('res-durata').textContent = durataOre.toFixed(1);
 
-            // Costruzione Tabella Dodicesimi
-            // I moltiplicatori sono: +1/12, +2/12, +3/12, +3/12, +2/12, +1/12
+            // Costruzione Dati per Grafico e Tabella
             const sequenza = [1, 2, 3, 3, 2, 1];
+            let etichetteGrafico = [];
+            let datiGrafico = [];
             let htmlTabella = `<tr><th>Ora</th><th>Variazione</th><th>Livello Acqua</th></tr>`;
             
             let livelloAttuale = livBM;
             let minutiAttuali = minBM_tot;
 
-            // Riga di partenza (Bassa Marea)
-            htmlTabella += `<tr>
-                <td><b>${formattaOra(minutiAttuali)}</b></td>
-                <td>-</td>
-                <td style="color:#ef4444; font-weight:bold;">${livelloAttuale.toFixed(2)} m (BM)</td>
-            </tr>`;
+            // Inserimento punto zero (Bassa Marea)
+            etichetteGrafico.push(formattaOra(minutiAttuali));
+            datiGrafico.push(livelloAttuale);
+            htmlTabella += `<tr><td><b>${formattaOra(minutiAttuali)}</b></td><td>-</td><td style="color:#ef4444; font-weight:bold;">${livelloAttuale.toFixed(2)} m (BM)</td></tr>`;
 
             for (let i = 0; i < 6; i++) {
                 minutiAttuali += stepMinuti;
-                let variazione = sequenza[i] * unDodicesimo;
-                livelloAttuale += variazione;
+                livelloAttuale += (sequenza[i] * unDodicesimo);
+                
+                etichetteGrafico.push(formattaOra(minutiAttuali));
+                datiGrafico.push(livelloAttuale);
 
-                let etichetta = "";
-                if (i === 5) etichetta = " (AM)";
-
+                let etichetta = i === 5 ? " (AM)" : "";
                 let color = i === 5 ? "color:#38bdf8; font-weight:bold;" : "";
-
-                htmlTabella += `<tr>
-                    <td>${formattaOra(minutiAttuali)}</td>
-                    <td style="color:#94a3b8;">+ ${sequenza[i]}/12</td>
-                    <td style="${color}">${livelloAttuale.toFixed(2)} m${etichetta}</td>
-                </tr>`;
+                htmlTabella += `<tr><td>${formattaOra(minutiAttuali)}</td><td style="color:#94a3b8;">+ ${sequenza[i]}/12</td><td style="${color}">${livelloAttuale.toFixed(2)} m${etichetta}</td></tr>`;
             }
 
             document.getElementById('tabella-ore').innerHTML = htmlTabella;
+            
+            // Rendering Grafico con Chart.js
+            disegnaGrafico(etichetteGrafico, datiGrafico);
+
+            // CALCOLO TIRANTE D'ACQUA (Usando la curva coseno continua per precisione assoluta)
+            const mediaMarea = (livAM + livBM) / 2;
+            // Calcola l'angolo in radianti. A minPass_tot = minAM_tot, il coseno è 1 (picco alto)
+            const angoloRad = Math.PI * ((minPass_tot - minAM_tot) / durataMinuti);
+            const mareaAlPassaggio = mediaMarea + (ampiezza / 2) * Math.cos(angoloRad);
+            
+            const fondaleTotale = profCarta + mareaAlPassaggio;
+            const margine = fondaleTotale - pescaggio;
+            
+            const boxSemaforo = document.getElementById('semaforo-tirante');
+            if (margine > 0.4) {
+                boxSemaforo.innerHTML = `🟢 <b>PASSAGGIO SICURO ALLE ${oraPassaggio}</b><br>Fondale calcolato: ${fondaleTotale.toFixed(2)}m (Margine: +${margine.toFixed(2)}m)`;
+                boxSemaforo.style.background = "rgba(16, 185, 129, 0.2)";
+                boxSemaforo.style.borderColor = "#10b981";
+            } else if (margine >= 0) {
+                boxSemaforo.innerHTML = `🟡 <b>ATTENZIONE: LIMITE ACQUE BASSE</b><br>Fondale calcolato: ${fondaleTotale.toFixed(2)}m (Margine: +${margine.toFixed(2)}m)`;
+                boxSemaforo.style.background = "rgba(245, 158, 11, 0.2)";
+                boxSemaforo.style.borderColor = "#f59e0b";
+            } else {
+                boxSemaforo.innerHTML = `🔴 <b>PERICOLO INCAGLIO CERTO</b><br>Fondale calcolato: ${fondaleTotale.toFixed(2)}m (Mancano: ${Math.abs(margine).toFixed(2)}m d'acqua)`;
+                boxSemaforo.style.background = "rgba(239, 68, 68, 0.2)";
+                boxSemaforo.style.borderColor = "#ef4444";
+            }
+
             document.getElementById('pannello-risultati').classList.remove('hidden');
         }
 
-        // Funzione di utilità per formattare i minuti in orario HH:MM
         function formattaOra(minutiTotali) {
             let h = Math.floor(minutiTotali / 60) % 24;
             let m = Math.round(minutiTotali % 60);
             return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function disegnaGrafico(etichette, dati) {
+            const ctx = document.getElementById('graficoMarea').getContext('2d');
+            if (mareaChart) mareaChart.destroy(); 
+
+            mareaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: etichette,
+                    datasets: [{
+                        label: 'Livello Acqua (m)',
+                        data: dati,
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                        borderWidth: 3,
+                        tension: 0.4, 
+                        fill: true,
+                        pointBackgroundColor: '#f8fafc',
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            title: { display: true, text: 'Metri', color: '#94a3b8' },
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' },
+                            ticks: { color: '#f8fafc' }
+                        },
+                        x: { 
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' },
+                            ticks: { color: '#f8fafc' }
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
