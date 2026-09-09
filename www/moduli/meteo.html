@@ -161,6 +161,7 @@
         // --- GESTIONE MULTI-RADAR SENTINELLA ---
         window.onload = () => {
             caricaListaRadar();
+            richiediPermessiNotifiche()
         };
 
         async function convertiCittaoCoordinate() {
@@ -263,6 +264,65 @@
                 console.error("Errore sincronizzazione cloud", error);
             }
         }
+
+        import { LocalNotifications } from '@capacitor/local-notifications';
+
+// 1. Richiedi i permessi all'utente (da chiamare al primo avvio o da un bottone)
+async function richiediPermessiNotifiche() {
+    const permessi = await LocalNotifications.requestPermissions();
+    if (permessi.display !== 'granted') {
+        alert("Per ricevere i promemoria meteo devi abilitare le notifiche.");
+    }
+}
+
+// 2. Controlla il meteo e spara la notifica locale se è una giornata perfetta
+async function controllaEAvvisaInApp() {
+    // Recupera il primo spot salvato nella tua lista radar locale
+    const lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
+    if (lista.length === 0) return;
+
+    const spot = lista[0]; // Prende il primo spot come riferimento
+
+    try {
+        const urlOnde = `https://marine-api.open-meteo.com/v1/marine?latitude=${spot.lat}&longitude=${spot.lon}&hourly=wave_height&forecast_days=1`;
+        const urlVento = `https://api.open-meteo.com/v1/forecast?latitude=${spot.latitude || spot.lat}&longitude=${spot.lon}&hourly=wind_speed_10m,weathercode&wind_speed_unit=kn&forecast_days=1`;
+
+        const [resOnde, resVento] = await Promise.all([fetch(urlOnde), fetch(urlVento)]);
+        const dataOnde = await resOnde.json();
+        const dataVento = await resVento.json();
+
+        // Controlla le ore diurne di oggi
+        for (let i = 9; i <= 18; i++) {
+            const v = dataVento.hourly.wind_speed_10m[i];
+            const o = dataOnde.hourly.wave_height[i];
+            const code = dataVento.hourly.weathercode[i];
+
+            // Se c'è vento ideale, onde basse e ZERO pioggia (code < 51)
+            if (v >= spot.ventoMin && v <= spot.ventoMax && o <= spot.ondaMax && code < 51) {
+                
+                // Invia la notifica push locale sul telefono!
+                await LocalNotifications.schedule({
+                    notifications: [
+                        {
+                            title: `🌊 Poseidon: Via libera a ${spot.localita}!`,
+                            body: `Condizioni perfette alle ${i}:00! Vento: ${v} kn, Onde: ${o}m.`,
+                            id: new Date().getTime(),
+                            schedule: { at: new Date(Date.now() + 1000) }, // Spara la notifica subito
+                            sound: null,
+                            attachments: null,
+                            actionTypeId: "",
+                            extra: null
+                        }
+                    ]
+                });
+                break; // Trovata la finestra, esce dal ciclo
+            }
+        }
+    } catch (e) {
+        console.error("Errore controllo notifiche locali", e);
+    }
+}
+
     </script>
 </body>
 </html>
