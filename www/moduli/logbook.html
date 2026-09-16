@@ -59,7 +59,13 @@
 
     <script>
         // Recupera i log salvati in precedenza nella memoria del browser (localStorage)
-        let registroLog = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+        let registroLog;
+        try {
+            registroLog = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+            if (!Array.isArray(registroLog)) registroLog = [];
+        } catch {
+            registroLog = [];
+        }
         mostraLogbook();
 
         function registraPuntoGPS() {
@@ -93,15 +99,16 @@
                 localStorage.setItem('nave_logbook', JSON.stringify(registroLog));
 
                 // INVIO AUTOMATICO AL CLOUD
-                const email = localStorage.getItem('plancia_utente');
-                if (email) {
+                const sessione = JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
+                if (sessione && sessione.token && sessione.email) {
                     // Inserisci qui l'URL del tuo script Google!
                     const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
                     fetch(API_URL, {
                         method: "POST",
                         body: JSON.stringify({
                             azione: "salva_dati",
-                            email: email,
+                            email: sessione.email,
+                            sessionToken: sessione.token,
                             tipoDato: "logbook",
                             contenuto: registroLog
                         })
@@ -131,15 +138,21 @@
             registroLog.forEach(voce => {
                 html += `
                     <tr>
-                        <td style="font-weight: bold; color: #4ade80;">${voce.ora}</td>
-                        <td style="font-family: monospace;">${voce.lat}</td>
-                        <td style="font-family: monospace;">${voce.lon}</td>
-                        <td>${voce.meteo}</td>
-                        <td style="text-align: left; padding-left: 10px;">${voce.testo}</td>
+                        <td style="font-weight: bold; color: #4ade80;">${escapeHtml(voce.ora)}</td>
+                        <td style="font-family: monospace;">${escapeHtml(voce.lat)}</td>
+                        <td style="font-family: monospace;">${escapeHtml(voce.lon)}</td>
+                        <td>${escapeHtml(voce.meteo)}</td>
+                        <td style="text-align: left; padding-left: 10px;">${escapeHtml(voce.testo)}</td>
                     </tr>
                 `;
             });
             tbody.innerHTML = html;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, (carattere) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[carattere]));
         }
 
         function pulisciLogbook() {

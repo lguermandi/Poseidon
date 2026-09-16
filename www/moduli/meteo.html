@@ -159,10 +159,12 @@
         }
 
         // --- GESTIONE MULTI-RADAR SENTINELLA ---
-        window.onload = () => {
-            caricaListaRadar();
-            richiediPermessiNotifiche()
-        };
+        window.onload = async () => {
+    caricaListaRadar();
+
+    await richiediPermessiNotifiche();
+    await controllaEAvvisaInApp();
+};
 
         async function convertiCittaoCoordinate() {
             const query = document.getElementById('alert-localita').value;
@@ -195,8 +197,8 @@
                 div.style.cssText = "background: #1e293b; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #475569;";
                 div.innerHTML = `
                     <div style="font-size: 0.85rem;">
-                        <b style="color: #38bdf8;">${item.localita}</b><br>
-                        <span style="color: #94a3b8;">Vento: ${item.ventoMin}-${item.ventoMax} kn | Onde: <${item.ondaMax}m</span>
+                        <b style="color: #38bdf8;">${escapeHtml(item.localita)}</b><br>
+                        <span style="color: #94a3b8;">Vento: ${escapeHtml(item.ventoMin)}-${escapeHtml(item.ventoMax)} kn | Onde: &lt;${escapeHtml(item.ondaMax)}m</span>
                     </div>
                     <button onclick="cancellaRadar(${index})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Elimina</button>
                 `;
@@ -204,47 +206,78 @@
             });
         }
 
-        async function aggiungiRadar() {
-            const btn = document.getElementById('btn-aggiungi-radar');
-            const nuovoAvviso = {
-                id: Date.now(),
-                localita: document.getElementById('alert-localita').value,
-                lat: parseFloat(document.getElementById('alert-lat').value),
-                lon: parseFloat(document.getElementById('alert-lon').value),
-                ventoMin: parseFloat(document.getElementById('alert-vento-min').value),
-                ventoMax: parseFloat(document.getElementById('alert-vento-max').value),
-                ondaMax: parseFloat(document.getElementById('alert-onda-max').value),
-                email: document.getElementById('alert-email').value,
-                testo: document.getElementById('alert-testo').value
-            };
-
-            if(!nuovoAvviso.email) {
-                alert("Inserisci un indirizzo email valido.");
-                return;
-            }
-
-            let lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
-            lista.push(nuovoAvviso);
-            localStorage.setItem('meteo_sentinella_lista', JSON.stringify(lista));
-
-            caricaListaRadar();
-            btn.innerHTML = "⏳ Sincronizzazione con Google...";
-
-            try {
-                await fetch(WEBAPP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ azione: "aggiorna_radar", avvisi: lista })
-                });
-                
-                btn.innerHTML = "✅ Avviso Aggiunto e Sincronizzato";
-                setTimeout(() => { btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso"; }, 3000);
-            } catch (error) {
-                alert("Errore di connessione con lo script Google.");
-                btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso";
-            }
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, (carattere) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[carattere]));
         }
+
+        async function aggiungiRadar() {
+    const btn = document.getElementById('btn-aggiungi-radar');
+
+    // 1. Recupera il token di sicurezza
+    let sessione;
+    try {
+        sessione = JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
+    } catch (error) {
+        sessione = null;
+    }
+    const token = sessione && sessione.token;
+    if (!token) {
+        alert("Devi effettuare il login per poter salvare gli avvisi sul cloud.");
+        return;
+    }
+
+    const nuovoAvviso = {
+        id: Date.now(),
+        localita: document.getElementById('alert-localita').value,
+        lat: parseFloat(document.getElementById('alert-lat').value),
+        lon: parseFloat(document.getElementById('alert-lon').value),
+        ventoMin: parseFloat(document.getElementById('alert-vento-min').value),
+        ventoMax: parseFloat(document.getElementById('alert-vento-max').value),
+        ondaMax: parseFloat(document.getElementById('alert-onda-max').value),
+        email: document.getElementById('alert-email').value.trim(),
+        testo: document.getElementById('alert-testo').value
+    };
+
+    if(!nuovoAvviso.email || !document.getElementById('alert-email').checkValidity()) {
+        alert("Inserisci un indirizzo email valido.");
+        return;
+    }
+
+    if (!Number.isFinite(nuovoAvviso.lat) || !Number.isFinite(nuovoAvviso.lon) ||
+        !Number.isFinite(nuovoAvviso.ventoMin) || !Number.isFinite(nuovoAvviso.ventoMax) ||
+        !Number.isFinite(nuovoAvviso.ondaMax) || nuovoAvviso.ventoMin > nuovoAvviso.ventoMax) {
+        alert("Controlla coordinate e soglie meteo inserite.");
+        return;
+    }
+
+    let lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
+    lista.push(nuovoAvviso);
+    localStorage.setItem('meteo_sentinella_lista', JSON.stringify(lista));
+
+    caricaListaRadar();
+    btn.innerHTML = "⏳ Sincronizzazione con Google...";
+
+    try {
+        await fetch(WEBAPP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // NOTA: con no-cors Google riceve il dato ma il browser non può leggere la risposta
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                azione: "aggiorna_radar",
+                sessionToken: token,  // 2. Invia il token al server
+                avvisi: lista
+            })
+        });
+
+        btn.innerHTML = "✅ Avviso Aggiunto e Sincronizzato";
+        setTimeout(() => { btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso"; }, 3000);
+    } catch (error) {
+        alert("Errore di connessione con lo script Google.");
+        btn.innerHTML = "➕ Aggiungi e Sincronizza Avviso";
+    }
+}
 
         async function cancellaRadar(index) {
             let lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
@@ -265,10 +298,12 @@
             }
         }
 
-        import { LocalNotifications } from '@capacitor/local-notifications';
+        const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
 
 // 1. Richiedi i permessi all'utente (da chiamare al primo avvio o da un bottone)
 async function richiediPermessiNotifiche() {
+    if (!LocalNotifications) return;
+
     const permessi = await LocalNotifications.requestPermissions();
     if (permessi.display !== 'granted') {
         alert("Per ricevere i promemoria meteo devi abilitare le notifiche.");
@@ -277,6 +312,8 @@ async function richiediPermessiNotifiche() {
 
 // 2. Controlla il meteo e spara la notifica locale se è una giornata perfetta
 async function controllaEAvvisaInApp() {
+    if (!LocalNotifications) return;
+
     // Recupera il primo spot salvato nella tua lista radar locale
     const lista = JSON.parse(localStorage.getItem('meteo_sentinella_lista') || '[]');
     if (lista.length === 0) return;

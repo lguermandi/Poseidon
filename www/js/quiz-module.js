@@ -10,6 +10,16 @@
     let tempoRimanente = 0;
     let timerInterval = null;
 
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, (carattere) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[carattere]));
+    }
+
     async function inizializza() {
         try {
             const response = await fetch(API_URL);
@@ -34,7 +44,10 @@
         const select = document.getElementById('select-argomento');
         select.innerHTML = '';
         argomentiDisponibili.forEach((arg) => {
-            select.innerHTML += `<option value="${arg}">${arg}</option>`;
+            const option = document.createElement('option');
+            option.value = arg;
+            option.textContent = arg;
+            select.appendChild(option);
         });
 
         document.getElementById('loading').classList.add('hidden');
@@ -104,6 +117,7 @@
 
     function avviaTimer() {
         clearInterval(timerInterval);
+        aggiornaTimerDisplay();
         timerInterval = setInterval(() => {
             tempoRimanente -= 1;
             if (tempoRimanente <= 0) {
@@ -112,10 +126,14 @@
                 consegnaQuiz();
                 return;
             }
-            const m = Math.floor(tempoRimanente / 60).toString().padStart(2, '0');
-            const s = (tempoRimanente % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').textContent = `${m}:${s}`;
+            aggiornaTimerDisplay();
         }, 1000);
+    }
+
+    function aggiornaTimerDisplay() {
+        const m = Math.floor(Math.max(tempoRimanente, 0) / 60).toString().padStart(2, '0');
+        const s = (Math.max(tempoRimanente, 0) % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').textContent = `${m}:${s}`;
     }
 
     function consegnaQuiz() {
@@ -141,10 +159,10 @@
 
                 listaErroriHTML += `
                     <div class="errore-item">
-                        <b style="color:#f87171;">Q: ${q.domanda}</b><br>
-                        <span style="color:#94a3b8;">Tua risposta:</span> ${testoData}<br>
-                        <span style="color:#4ade80;">Risposta esatta:</span> ${testoEsatta}<br>
-                        <small style="color:#fb923c; margin-top:5px; display:block;">ℹ️ ${q.spiegazione}</small>
+                        <b style="color:#f87171;">Q: ${escapeHtml(q.domanda)}</b><br>
+                        <span style="color:#94a3b8;">Tua risposta:</span> ${escapeHtml(testoData)}<br>
+                        <span style="color:#4ade80;">Risposta esatta:</span> ${escapeHtml(testoEsatta)}<br>
+                        <small style="color:#fb923c; margin-top:5px; display:block;">ℹ️ ${escapeHtml(q.spiegazione)}</small>
                     </div>
                 `;
             }
@@ -166,8 +184,13 @@
     }
 
     async function salvaInCloud(mod, punt, esito, errTxt) {
+        const sessione = JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
+        if (!sessione || !sessione.token || !sessione.email) return;
+
         const payload = {
-        email: localStorage.getItem('navigazione_user'),
+        azione: 'salva_quiz',
+        email: sessione.email,
+        sessionToken: sessione.token,
         modalita: mod === 'esame' ? 'Simulazione Esame Base' : 'Argomento',
         punteggio: punt,
         esito: esito,

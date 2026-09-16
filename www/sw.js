@@ -1,17 +1,21 @@
-const NOME_CACHE = 'nautica-app-v2';
+const NOME_CACHE = 'nautica-app-v3';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
     './',
     './index.html',
-    './config.js',
     './css/style.css',
     './js/app-shell.js',
     './js/core_navigazione.js',
     './js/core_vela.js',
     './js/mappa-module.js',
+    './js/profilo-module.js',
     './js/quiz-module.js',
+    './moduli/accademia.html',
     './moduli/home.html',
+    './moduli/navigazione.html',
+    './moduli/profilo.html',
+    './moduli/logbook.html',
     './moduli/carteggio.html',
     './moduli/quiz.html',
     './moduli/vela.html',
@@ -32,8 +36,25 @@ self.addEventListener('install', (evento) => {
         caches.open(NOME_CACHE)
             .then((cache) => {
                 console.log('Service Worker: File salvati in cache per uso offline');
-                return cache.addAll(FILE_DA_SALVARE);
+                return Promise.allSettled(FILE_DA_SALVARE.map((file) => cache.add(file)))
+                    .then((risultati) => {
+                        const falliti = risultati.filter((risultato) => risultato.status === 'rejected');
+                        if (falliti.length > 0) {
+                            console.warn(`Service Worker: ${falliti.length} risorse non disponibili offline.`);
+                        }
+                    });
             })
+    );
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (evento) => {
+    evento.waitUntil(
+        caches.keys().then((nomiCache) => Promise.all(
+            nomiCache
+                .filter((nomeCache) => nomeCache !== NOME_CACHE)
+                .map((nomeCache) => caches.delete(nomeCache))
+        )).then(() => self.clients.claim())
     );
 });
 
@@ -42,8 +63,8 @@ self.addEventListener('fetch', (evento) => {
     evento.respondWith(
         caches.match(evento.request)
             .then((risposta_offline) => {
-                // Se trova il file in memoria, usa quello, altrimenti usa internet
-                return risposta_offline || fetch(evento.request);
+                // Se trova il file in memoria, usa quello; altrimenti prova la rete.
+                return risposta_offline || fetch(evento.request).catch(() => caches.match('./index.html'));
             })
     );
 });

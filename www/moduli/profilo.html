@@ -125,19 +125,49 @@
     <script>
         // URL di Google Apps Script richiamato dal parent (index.html)
         const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
+        const SESSIONE_KEY = 'poseidon_sessione';
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const utenteSalvato = localStorage.getItem('plancia_utente');
-            if (utenteSalvato) {
-                mostraStatoUtente(utenteSalvato);
+        window.addEventListener('DOMContentLoaded', async () => {
+            const sessione = leggiSessione();
+            if (!sessione) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ azione: "verifica_sessione", sessionToken: sessione.token })
+                });
+                const risultato = await response.json();
+                if (risultato.status === "successo") {
+                    mostraStatoUtente(risultato.email || sessione.email);
+                } else {
+                    cancellaSessione();
+                }
+            } catch (e) {
+                cancellaSessione();
             }
         });
 
-        async function sha256(message) {
-            const msgBuffer = new TextEncoder().encode(message);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        function leggiSessione() {
+            try {
+                const sessione = JSON.parse(sessionStorage.getItem(SESSIONE_KEY) || 'null');
+                if (!sessione || !sessione.token || !sessione.email || sessione.scadenza <= Date.now()) {
+                    cancellaSessione();
+                    return null;
+                }
+                return sessione;
+            } catch (e) {
+                cancellaSessione();
+                return null;
+            }
+        }
+
+        function salvaSessione(email, token, scadenza) {
+            sessionStorage.setItem(SESSIONE_KEY, JSON.stringify({ email, token, scadenza }));
+        }
+
+        function cancellaSessione() {
+            sessionStorage.removeItem(SESSIONE_KEY);
+            localStorage.removeItem('plancia_utente');
         }
 
         function ottieniPosizioneGPS() {
@@ -161,7 +191,6 @@
 
             status.style.color = "#fb923c";
             status.textContent = "Verifica credenziali ...";
-            const hashedPassword = await sha256(pass);
 
             try {
                 const posizione = await ottieniPosizioneGPS();
@@ -171,16 +200,18 @@
                     body: JSON.stringify({ 
                         azione: "login", 
                         email: email, 
-                        passwordHash: hashedPassword,
+                        password: pass,
                         lat: posizione.lat,
                         lng: posizione.lng
                     })
                 });
                 const risultato = await response.json();
 
-                if (risultato.status === "successo") {
-                    localStorage.setItem('plancia_utente', email);
+                if (risultato.status === "successo" && risultato.token && risultato.scadenza) {
+                    salvaSessione(email, risultato.token, risultato.scadenza);
                     mostraStatoUtente(email);
+                } else if (risultato.status === "successo") {
+                    throw new Error("Il server non ha restituito una sessione sicura.");
                 } else {
                     status.style.color = "#ef4444";
                     status.textContent = risultato.messaggio;
@@ -204,7 +235,6 @@
 
             status.style.color = "#fb923c";
             status.textContent = "Registrazione sul cloud in corso...";
-            const hashedPassword = await sha256(pass);
 
             try {
                 const posizione = await ottieniPosizioneGPS();
@@ -214,7 +244,7 @@
                     body: JSON.stringify({ 
                         azione: "registrazione", 
                         email: email, 
-                        passwordHash: hashedPassword,
+                        password: pass,
                         lat: posizione.lat,
                         lng: posizione.lng
                     })
@@ -255,7 +285,7 @@
         }
 
         async function salvaDatiProfilo() {
-    const email = localStorage.getItem('plancia_utente');
+    const sessione = leggiSessione();
     const qualifica = document.getElementById('profilo-qualifica').value;
     const barca = document.getElementById('profilo-barca').value;
     const base = document.getElementById('profilo-base').value;
@@ -266,7 +296,7 @@
     localStorage.setItem('profilo_base', base);
 
     // Se l'utente non ha fatto l'accesso, si ferma al salvataggio locale
-    if (!email) return;
+    if (!sessione) return;
 
     // Invio diretto al "cloud" (Google Sheets)
     try {
@@ -274,7 +304,8 @@
             method: "POST",
             body: JSON.stringify({
                 azione: "salva_profilo",
-                email: email,
+                email: sessione.email,
+                sessionToken: sessione.token,
                 qualifica: qualifica,
                 barca: barca,
                 base: base
@@ -287,7 +318,7 @@
 }
 
         function esciAccount() {
-    localStorage.removeItem('plancia_utente');
+    cancellaSessione();
     document.getElementById('form-container').style.display = 'block';
     document.getElementById('profilo-container').style.display = 'none';
     document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
@@ -297,9 +328,21 @@
 }
 
         // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, (carattere) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[carattere]));
+        }
+
         function aggiornaListaTracce(email) {
             const contenitore = document.getElementById('lista-tracce');
-            const storico = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
+            let storico;
+            try {
+                storico = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
+                if (!Array.isArray(storico)) storico = [];
+            } catch {
+                storico = [];
+            }
             
             if (storico.length === 0) {
                 contenitore.innerHTML = "<p style='color:#94a3b8; font-size:0.9rem;'>Nessuna traccia GPS registrata.</p>";
@@ -318,24 +361,25 @@
             }
 
             let html = "";
-            storico.reverse().forEach(traccia => {
+            storico.slice().reverse().forEach(traccia => {
+                const punti = Array.isArray(traccia.punti) ? traccia.punti : [];
                 let distanzaNm = 0;
                 let tempoOre = 0;
                 let stringaStat = "Dati insufficienti per le statistiche";
 
                 // Se la traccia ha almeno due punti, calcoliamo le statistiche
-                if (traccia.punti && traccia.punti.length > 1) {
+                if (punti.length > 1) {
                     // Somma la distanza di tutti i piccoli segmenti
-                    for (let i = 1; i < traccia.punti.length; i++) {
+                    for (let i = 1; i < punti.length; i++) {
                         distanzaNm += calcolaDistanzaMiglia(
-                            traccia.punti[i-1].lat, traccia.punti[i-1].lon,
-                            traccia.punti[i].lat, traccia.punti[i].lon
+                            punti[i-1].lat, punti[i-1].lon,
+                            punti[i].lat, punti[i].lon
                         );
                     }
 
                     // Calcola il tempo tra il primo e l'ultimo fix GPS
-                    const tInizio = new Date(traccia.punti[0].time);
-                    const tFine = new Date(traccia.punti[traccia.punti.length - 1].time);
+                    const tInizio = new Date(punti[0].time);
+                    const tFine = new Date(punti[punti.length - 1].time);
                     tempoOre = (tFine - tInizio) / 3600000; // Converte i millisecondi in ore
 
                     if (tempoOre > 0 && distanzaNm > 0) {
@@ -354,8 +398,8 @@
 
                 html += `
                     <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #10b981;">
-                        <div style="color: #f8fafc; font-weight: bold; font-size: 1.1rem;">${traccia.nome}</div>
-                        <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 10px;">${traccia.data} - ${traccia.punti.length} wp</div>
+                        <div style="color: #f8fafc; font-weight: bold; font-size: 1.1rem;">${escapeHtml(traccia.nome || 'Rotta salvata')}</div>
+                        <div style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 10px;">${escapeHtml(traccia.data || '')} - ${punti.length} wp</div>
                         
                         <div style="background: #0f172a; padding: 10px; border-radius: 6px; color: #4ade80; font-size: 0.9rem; margin-bottom: 15px; line-height: 1.6;">
                             ${stringaStat}

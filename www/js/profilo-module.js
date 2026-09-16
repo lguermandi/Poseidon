@@ -3,7 +3,13 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function caricaStatisticheERotte() {
-    const rotte = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
+    let rotte;
+    try {
+        rotte = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
+        if (!Array.isArray(rotte)) rotte = [];
+    } catch {
+        rotte = [];
+    }
     
     // Calcola totali
     let migliaTotali = 0;

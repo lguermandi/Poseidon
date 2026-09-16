@@ -164,6 +164,11 @@
             
             const veff = Math.sqrt(Math.pow(veff_x, 2) + Math.pow(veff_y, 2));
 
+            if (veff <= 0) {
+                document.getElementById('plan-tempo').innerText = 'N/D';
+                return;
+            }
+
             // Aggiunge il tempo di questo specifico segmento al totale
             tempoTotaleOre += (distanzaNm / veff);
         }
@@ -380,6 +385,7 @@
     window.fermaGPS = function() {
         inNavigazione = false;
         clearInterval(timerInterval);
+        timerInterval = null;
 
         rilasciaSchermo(); 
 
@@ -388,6 +394,7 @@
             bgWatcherId = null;
         } else if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
+            watchId = null;
         }
     };
 
@@ -460,10 +467,18 @@
             id: Date.now(),
             nome: "Rotta del " + dataFormattata,
             data: dataFormattata,
-            punti: puntiTracciato 
+            punti: puntiTracciato,
+            distanza: liveDistanzaNm,
+            durata: document.getElementById("tempo-trascorso").innerText
         };
 
-        const rotteEsistenti = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
+        let rotteEsistenti;
+        try {
+            rotteEsistenti = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
+            if (!Array.isArray(rotteEsistenti)) rotteEsistenti = [];
+        } catch {
+            rotteEsistenti = [];
+        }
         rotteEsistenti.push(nuovaRotta);
         localStorage.setItem("navigazione_rotte", JSON.stringify(rotteEsistenti));
         
