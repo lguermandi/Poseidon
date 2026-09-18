@@ -20,14 +20,39 @@
         }[carattere]));
     }
 
+    async function scaricaDatabase() {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        try {
+            const response = await fetch(API_URL, { signal: controller.signal });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const dati = await response.json();
+            if (!Array.isArray(dati)) throw new Error('Formato database non valido');
+            return dati;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    function leggiDatabaseLocale() {
+        try {
+            const dati = JSON.parse(localStorage.getItem('db_quiz') || '[]');
+            return Array.isArray(dati) ? dati : [];
+        } catch (errore) {
+            console.warn('Database quiz locale non valido.', errore);
+            return [];
+        }
+    }
+
     async function inizializza() {
         try {
-            const response = await fetch(API_URL);
-            databaseGrezzo = await response.json();
+            databaseGrezzo = await scaricaDatabase();
             localStorage.setItem('db_quiz', JSON.stringify(databaseGrezzo));
         } catch (e) {
             console.error('Offline. Uso dati locali.', e);
-            databaseGrezzo = JSON.parse(localStorage.getItem('db_quiz') || '[]');
+            databaseGrezzo = leggiDatabaseLocale();
         }
 
         if (databaseGrezzo.length === 0) {
@@ -188,14 +213,14 @@
         if (!sessione || !sessione.token || !sessione.email) return;
 
         const payload = {
-        azione: 'salva_quiz',
-        email: sessione.email,
-        sessionToken: sessione.token,
-        modalita: mod === 'esame' ? 'Simulazione Esame Base' : 'Argomento',
-        punteggio: punt,
-        esito: esito,
-        errori: errTxt
-    };
+            azione: 'salva_quiz',
+            email: sessione.email,
+            sessionToken: sessione.token,
+            modalita: mod === 'esame' ? 'Simulazione Esame Base' : 'Argomento',
+            punteggio: punt,
+            esito: esito,
+            errori: errTxt
+        };
 
         try {
             await fetch(API_URL, {

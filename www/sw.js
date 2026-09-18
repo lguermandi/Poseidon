@@ -1,4 +1,4 @@
-const NOME_CACHE = 'nautica-app-v3';
+const NOME_CACHE = 'nautica-app-v4';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
@@ -25,9 +25,12 @@ const FILE_DA_SALVARE = [
     './moduli/fari.html',
     './moduli/maree.html',
     './moduli/motore.html',
-    // Salviamo anche le librerie della mappa!
+    './manifest.json',
+    'https://unpkg.com/@phosphor-icons/web',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+    'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
 // FASE 1: Installazione (scarica tutto e lo mette in stiva)
@@ -60,11 +63,24 @@ self.addEventListener('activate', (evento) => {
 
 // FASE 2: Ascolto (quando sei offline, pesca i file dalla stiva)
 self.addEventListener('fetch', (evento) => {
+    if (evento.request.method !== 'GET') return;
+
     evento.respondWith(
         caches.match(evento.request)
             .then((risposta_offline) => {
-                // Se trova il file in memoria, usa quello; altrimenti prova la rete.
-                return risposta_offline || fetch(evento.request).catch(() => caches.match('./index.html'));
+                if (risposta_offline) return risposta_offline;
+
+                return fetch(evento.request).catch(() => {
+                    // Solo le navigazioni HTML possono usare la home come fallback.
+                    if (evento.request.mode === 'navigate') {
+                        return caches.match('./index.html');
+                    }
+
+                    return new Response('', {
+                        status: 503,
+                        statusText: 'Offline'
+                    });
+                });
             })
     );
 });

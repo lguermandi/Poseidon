@@ -1,5 +1,5 @@
 class LogicaVela {
-    
+
     /**
      * Calcola il Vento Vero (True Wind) conoscendo la velocità della barca,
      * l'angolo e la velocità del Vento Apparente (Apparent Wind).
@@ -10,7 +10,7 @@ class LogicaVela {
      */
     static calcolaVentoVero(sog, awa, aws) {
         const awaRad = awa * (Math.PI / 180);
-        
+
         // Scomponiamo il vento apparente sugli assi della barca
         const awsX = aws * Math.sin(awaRad);
         const awsY = aws * Math.cos(awaRad);
@@ -51,18 +51,22 @@ class LogicaVela {
         if (ventiDisponibili.length === 0) return 0;
 
         // Trova l'intensità di vento più vicina nella polare
-        const ventoPiuVicino = ventiDisponibili.reduce((prev, curr) => 
+        const ventoPiuVicino = ventiDisponibili.reduce((prev, curr) =>
             Math.abs(curr - tws) < Math.abs(prev - tws) ? curr : prev
         );
 
         const curva = polari.tws[ventoPiuVicino];
         const angoliDisponibili = Object.keys(curva).map(Number);
-        
+
         // Trova l'angolo (TWA) più vicino nella polare
-        const angoloPiuVicino = angoliDisponibili.reduce((prev, curr) => 
+        const angoloPiuVicino = angoliDisponibili.reduce((prev, curr) =>
             Math.abs(curr - twa) < Math.abs(prev - twa) ? curr : prev
         );
 
         return curva[angoloPiuVicino];
     }
+}
+
+if (typeof module !== 'undefined') {
+    module.exports = { LogicaVela };
 }

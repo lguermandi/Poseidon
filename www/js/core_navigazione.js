@@ -2,7 +2,7 @@ class NavCore {
     // ==========================================
     // 1. TEMPO, SPAZIO, VELOCITÀ
     // ==========================================
-    
+
     /**
      * Calcola la velocità (Nodi)
      * @param {number} distance - Miglia nautiche (Nm)
@@ -48,7 +48,7 @@ class NavCore {
         const minutesNotTruncated = (absolute - degrees) * 60;
         const minutes = Math.floor(minutesNotTruncated);
         const seconds = Math.round((minutesNotTruncated - minutes) * 60);
-        
+
         return {
             sign: decimalAngle < 0 ? -1 : 1,
             deg: degrees,
@@ -56,7 +56,7 @@ class NavCore {
             sec: seconds
         };
     }
-    
+
     /**
      * Assicura che l'angolo resti nel range 0° - 359.9°
      */
@@ -115,7 +115,7 @@ class DeviationTable {
     getDeviation(prora) {
         // 1. Normalizziamo l'angolo per assicurarci che sia tra 0 e 360
         let p = ((prora % 360) + 360) % 360;
-        
+
         // Se p è esattamente 0, possiamo trattarlo come 360 se la tabella finisce a 360
         if (p === 0 && this.table[0].p !== 0) p = 360;
 
@@ -140,7 +140,7 @@ class DeviationTable {
                 return Math.round(interpolatedDev * 10) / 10;
             }
         }
-        
+
         // Fallback in caso di errore nei dati
         throw new Error("Prora fuori dai limiti della tabella");
     }
@@ -153,10 +153,10 @@ class DeviationTable {
 // Simuliamo un estratto di una tipica tabella ministeriale
 // Valori positivi = Est (+), Valori negativi = Ovest (-)
 const tabellaMinisteriale = [
-    { p: 0,   dev: 2.5 },
-    { p: 10,  dev: 2.8 },
-    { p: 20,  dev: 3.1 },
-    { p: 30,  dev: 3.5 },
+    { p: 0, dev: 2.5 },
+    { p: 10, dev: 2.8 },
+    { p: 20, dev: 3.1 },
+    { p: 30, dev: 3.5 },
     // ... altri valori ...
     { p: 350, dev: 2.0 },
     { p: 360, dev: 2.5 } // Il ciclo si chiude
@@ -234,5 +234,9 @@ class VectorMath {
     static calcolaRs(pv, lsc) {
         return ((pv + lsc) % 360 + 360) % 360;
     }
+}
+
+if (typeof module !== 'undefined') {
+    module.exports = { NavCore, DeviationTable, VectorMath };
 }
 
