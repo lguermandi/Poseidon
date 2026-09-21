@@ -1,124 +1,338 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        .stat-card { 
-            background: #1e293b; 
-            padding: 15px; 
-            border-radius: 8px; 
-            text-align: center; 
-            border: 1px solid #334155; 
+        :root {
+            --profile-surface: #172337;
+            --profile-surface-raised: #1d2b40;
+            --profile-line: rgba(148, 163, 184, 0.18);
+            --profile-muted: #9fb0c5;
         }
-        .stat-value { 
-            font-size: 2rem; 
-            color: #38bdf8; 
-            font-weight: bold; 
+
+        body {
+            align-items: stretch;
+            min-height: 0;
+            overflow-x: hidden;
+            padding: 18px clamp(14px, 4vw, 42px) 36px;
+            background: radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.12), transparent 34%), var(--bg-profondo);
         }
-        .stat-label { 
-            color: #94a3b8; 
-            font-size: 0.85rem; 
-            text-transform: uppercase; 
+
+        h1 {
+            margin-bottom: 6px;
+            font-size: clamp(1.6rem, 3vw, 2.15rem);
         }
-        .grid-stats { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-top: 15px; 
-            margin-bottom: 25px;
+
+        .profile-shell {
+            width: min(100%, 980px);
+            margin: 0 auto;
         }
-        .section-title {
-            color: #f8fafc; 
-            border-bottom: 1px solid #334155; 
-            padding-bottom: 5px; 
-            margin-top: 20px;
-            text-align: left;
+
+        .profile-panel {
+            max-width: none;
+            margin: 0;
+            padding: clamp(18px, 3vw, 30px);
+            background: rgba(30, 41, 59, 0.84);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--profile-line);
+        }
+
+        .profile-identity {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .profile-avatar {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
+            flex: 0 0 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+            color: #082f49;
+            font-size: 1.5rem;
+        }
+
+        .profile-hero h3 {
+            margin: 0 0 5px;
+            color: #6ee7b7;
             font-size: 1.1rem;
+        }
+
+        .profile-hero p {
+            margin: 0;
+            color: var(--profile-muted);
+            font-size: 0.88rem;
+        }
+
+        .profile-hero b {
+            color: var(--testo-primario);
+            overflow-wrap: anywhere;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 26px 0 13px;
+            padding: 0;
+            border: 0;
+            color: var(--testo-primario);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .section-title::before {
+            width: 4px;
+            height: 17px;
+            border-radius: 4px;
+            background: var(--accento-ciano);
+            content: '';
+        }
+
+        .profile-content-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .profile-column {
+            min-width: 0;
+        }
+
+        .profile-card-section {
+            padding: 17px;
+            border: 1px solid var(--profile-line);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.32);
+        }
+
+        .stat-card {
+            padding: 14px 10px;
+            border-color: var(--profile-line);
+            background: var(--profile-surface-raised);
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+        }
+
+        .grid-stats {
+            gap: 10px;
+            margin: 0;
+        }
+
+        .primary-action {
+            width: 100%;
+            margin: 0 0 18px;
+            padding: 14px 18px;
+            background: #0ea5e9;
+            font-size: 1rem;
+        }
+
+        .profile-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .profile-actions .btn-action {
+            min-height: 42px;
+            padding: 9px 12px;
+            font-size: 0.82rem;
+        }
+
+        .profile-fields {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 13px;
+        }
+
+        .profile-fields .input-group {
+            margin: 0;
+        }
+
+        .profile-fields input {
+            padding: 11px 12px;
+            font-size: 0.92rem;
+        }
+
+        .logout-action {
+            width: 100%;
+            margin-top: 18px;
+            padding: 11px;
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.55);
+            color: #fca5a5;
+            box-shadow: none;
+        }
+
+        #lista-tracce {
+            max-height: 390px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        @media (max-width: 680px) {
+            body {
+                padding: 14px 12px 28px;
+            }
+
+            .profile-hero {
+                align-items: flex-start;
+            }
+
+            .profile-content-grid {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .profile-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .profile-save-note {
+            min-height: 18px;
+            margin: 14px 0 0;
+            color: var(--profile-muted);
+            font-size: 0.78rem;
+        }
+
+        .profile-save-note.is-saved {
+            color: #6ee7b7;
         }
     </style>
 </head>
+
 <body>
-    <h1>Area Personale 👤</h1>
-    <div class="subtitle" id="sottotitolo-pagina">Gestione profilo e statistiche di bordo</div>
+    <div class="profile-shell">
+        <h1>Area Personale 👤</h1>
+        <div class="subtitle" id="sottotitolo-pagina">Gestione profilo e statistiche di bordo</div>
 
-    <div class="panel" style="max-width: 450px; margin: 0 auto;">
-        
-        <!-- Form di Login/Registrazione (Nascosto se loggato) -->
-        <div id="form-container">
-            <form onsubmit="event.preventDefault(); effettuaAccesso();">
-                <div class="input-group">
-                    <label>Indirizzo Email</label>
-                    <input type="email" id="auth-email" autocomplete="email" placeholder="nome@email.com" required>
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="auth-password" autocomplete="current-password" placeholder="********" required>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn-action" style="flex: 1;">Accedi</button>
-                    <button type="button" class="btn-action" style="flex: 1; background: #334155; color: #f8fafc;" onclick="registrati()">Registrati</button>
-                </div>
-            </form>
-            <p id="auth-status" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></p>
-        </div>
+        <div class="panel profile-panel">
 
-        <!-- Dashboard Utente Loggato -->
-        <div id="profilo-container" style="display: none;">
-            <div style="text-align: center;">
-                <h3 style="color: #4ade80; margin-bottom: 5px;">Bentornato, Comandante! ⛵</h3>
-                <p style="color: #94a3b8; font-size: 0.9rem;">Connesso come: <b id="testo-email-utente" style="color: #f8fafc;"></b></p>
+            <!-- Form di Login/Registrazione (Nascosto se loggato) -->
+            <div id="form-container">
+                <form onsubmit="event.preventDefault(); effettuaAccesso();">
+                    <div class="input-group">
+                        <label>Indirizzo Email</label>
+                        <input type="email" id="auth-email" autocomplete="email" placeholder="nome@email.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="auth-password" autocomplete="current-password" placeholder="********"
+                            required>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn-action" style="flex: 1;">Accedi</button>
+                        <button type="button" class="btn-action" style="flex: 1; background: #334155; color: #f8fafc;"
+                            onclick="registrati()">Registrati</button>
+                    </div>
+                </form>
+                <p id="auth-status" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></p>
             </div>
 
-            <!-- Accesso rapido al Logbook -->
-            <button class="btn-action" style="background: #0ea5e9; margin-bottom: 25px; padding: 15px; font-size: 1.1rem;" onclick="window.location.href='logbook.html'">
-                📖 Apri Giornale di Bordo (Logbook)
-            </button>
-            
-            <div class="section-title">Le tue Statistiche</div>
-            <div class="grid-stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-quiz">0</div>
-                    <div class="stat-label">Quiz Svolti</div>
+            <!-- Dashboard Utente Loggato -->
+            <div id="profilo-container" style="display: none;">
+                <div class="profile-hero">
+                    <div class="profile-identity">
+                        <div class="profile-avatar" aria-hidden="true">⛵</div>
+                        <div>
+                            <h3>Bentornato, Comandante!</h3>
+                            <p>Connesso come: <b id="testo-email-utente"></b></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-logbook">0</div>
-                    <div class="stat-label">Voci Logbook</div>
+
+                <!-- Accesso rapido al Logbook -->
+                <button class="btn-action primary-action" onclick="window.location.href='logbook.html'">
+                    📖 Apri Giornale di Bordo (Logbook)
+                </button>
+
+                <div class="profile-content-grid">
+                    <div class="profile-column">
+                        <div class="profile-card-section">
+                            <div class="section-title">Le tue statistiche</div>
+                            <div class="grid-stats">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stat-quiz">0</div>
+                                    <div class="stat-label">Quiz svolti</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="stat-logbook">0</div>
+                                    <div class="stat-label">Voci logbook</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-card-section">
+                            <div class="section-title">Dati navigatore</div>
+                            <div class="profile-fields">
+                                <div class="input-group">
+                                    <label for="profilo-qualifica">Obiettivo / Qualifica</label>
+                                    <input type="text" id="profilo-qualifica"
+                                        placeholder="es. Patente oltre le 12 miglia" onchange="salvaDatiProfilo()">
+                                </div>
+                                <div class="input-group">
+                                    <label for="profilo-barca">Imbarcazione principale</label>
+                                    <input type="text" id="profilo-barca" placeholder="es. Deriva 420"
+                                        onchange="salvaDatiProfilo()">
+                                </div>
+                                <div class="input-group">
+                                    <label for="profilo-base">Porto base</label>
+                                    <input type="text" id="profilo-base" placeholder="es. Riccione"
+                                        onchange="salvaDatiProfilo()">
+                                </div>
+                            </div>
+                        </div>
+                        <p id="stato-profilo" class="profile-save-note">Salvataggio automatico attivo</p>
+                    </div>
+
+                    <div class="profile-column">
+                        <div class="profile-card-section">
+                            <div class="section-title">Backup dati</div>
+                            <div class="profile-actions">
+                                <button class="btn-action" style="background: #3b82f6;"
+                                    onclick="esportaBackupRotte()">💾 Backup</button>
+                                <button class="btn-action" style="background: #8b5cf6;"
+                                    onclick="document.getElementById('file-import-rotte').click()">📥
+                                    Ripristina</button>
+                            </div>
+                            <input type="file" id="file-import-rotte" accept=".json" style="display: none;"
+                                onchange="importaBackupRotte(event)">
+                        </div>
+
+                        <div class="profile-card-section">
+                            <div class="section-title">Archivio navigazioni GPS</div>
+                            <div id="lista-tracce">
+                                <!-- Le tracce appariranno qui -->
+                            </div>
+                        </div>
+
+                        <button class="btn-action logout-action" onclick="esciAccount()">Disconnetti</button>
+                    </div>
                 </div>
             </div>
-
-            <!-- Pulsanti Backup in Blocco -->
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn-action" style="flex: 1; background: #3b82f6;" onclick="esportaBackupRotte()">💾 Backup Completo</button>
-                <button class="btn-action" style="flex: 1; background: #8b5cf6;" onclick="document.getElementById('file-import-rotte').click()">📥 Ripristina Backup</button>
-                <input type="file" id="file-import-rotte" accept=".json" style="display: none;" onchange="importaBackupRotte(event)">
-            </div>
-
-            <!-- SEZIONE STORICO ROTTE -->
-            <div class="section-title" style="margin-top: 30px;">Archivio Navigazioni GPS</div>
-            <div id="lista-tracce" style="margin-top: 15px; text-align: left;">
-                <!-- Le tracce appariranno qui -->
-            </div>
-
-            <div class="section-title">Dati Navigatore</div>
-            <div style="text-align: left; margin-top: 15px;">
-                <div class="input-group">
-                    <label>Obiettivo / Qualifica</label>
-                    <input type="text" id="profilo-qualifica" placeholder="es. Patente oltre le 12 miglia" onchange="salvaDatiProfilo()">
-                </div>
-                <div class="input-group">
-                    <label>Imbarcazione Principale</label>
-                    <input type="text" id="profilo-barca" placeholder="es. Deriva 420" onchange="salvaDatiProfilo()">
-                </div>
-                <div class="input-group">
-                    <label>Porto Base</label>
-                    <input type="text" id="profilo-base" placeholder="es. Riccione" onchange="salvaDatiProfilo()">
-                </div>
-            </div>
-
-            <button class="btn-action" style="background: #ef4444; width: 100%; margin-top: 20px;" onclick="esciAccount()">Disconnetti (Logout)</button>
         </div>
     </div>
 
@@ -127,16 +341,29 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
         const SESSIONE_KEY = 'poseidon_sessione';
 
+        async function richiestaAPI(payload) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             const sessione = leggiSessione();
             if (!sessione) return;
 
             try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ azione: "verifica_sessione", sessionToken: sessione.token })
-                });
-                const risultato = await response.json();
+                const risultato = await richiestaAPI({ azione: "verifica_sessione", sessionToken: sessione.token });
                 if (risultato.status === "successo") {
                     mostraStatoUtente(risultato.email || sessione.email);
                 } else {
@@ -185,7 +412,7 @@
         }
 
         async function effettuaAccesso() {
-            const email = document.getElementById('auth-email').value.trim();
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
             const pass = document.getElementById('auth-password').value;
             const status = document.getElementById('auth-status');
 
@@ -194,18 +421,14 @@
 
             try {
                 const posizione = await ottieniPosizioneGPS();
-                
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ 
-                        azione: "login", 
-                        email: email, 
-                        password: pass,
-                        lat: posizione.lat,
-                        lng: posizione.lng
-                    })
+
+                const risultato = await richiestaAPI({
+                    azione: "login",
+                    email: email,
+                    password: pass,
+                    lat: posizione.lat,
+                    lng: posizione.lng
                 });
-                const risultato = await response.json();
 
                 if (risultato.status === "successo" && risultato.token && risultato.scadenza) {
                     salvaSessione(email, risultato.token, risultato.scadenza);
@@ -218,12 +441,14 @@
                 }
             } catch (e) {
                 status.style.color = "#ef4444";
-                status.textContent = "Errore di rete durante il login.";
+                status.textContent = e.name === "AbortError"
+                    ? "Il server di autenticazione non risponde. Riprova tra poco."
+                    : "Errore di rete durante il login.";
             }
         }
 
         async function registrati() {
-            const email = document.getElementById('auth-email').value.trim();
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
             const pass = document.getElementById('auth-password').value;
             const status = document.getElementById('auth-status');
 
@@ -239,93 +464,124 @@
             try {
                 const posizione = await ottieniPosizioneGPS();
 
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ 
-                        azione: "registrazione", 
-                        email: email, 
-                        password: pass,
-                        lat: posizione.lat,
-                        lng: posizione.lng
-                    })
+                const risultato = await richiestaAPI({
+                    azione: "registrazione",
+                    email: email,
+                    password: pass,
+                    lat: posizione.lat,
+                    lng: posizione.lng
                 });
-                const risultato = await response.json();
 
                 status.style.color = risultato.status === "successo" ? "#4ade80" : "#ef4444";
                 status.textContent = risultato.messaggio;
             } catch (e) {
                 status.style.color = "#ef4444";
-                status.textContent = "Errore di rete durante la registrazione.";
+                status.textContent = e.name === "AbortError"
+                    ? "Il server di autenticazione non risponde. Riprova tra poco."
+                    : "Errore di rete durante la registrazione.";
             }
         }
 
         function mostraStatoUtente(email) {
-      document.getElementById('form-container').style.display = 'none';
-      document.getElementById('profilo-container').style.display = 'block';
-      document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
-      document.getElementById('testo-email-utente').textContent = email;
-    
-    aggiornaStatistiche();
-    aggiornaListaTracce(email);
-}
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('profilo-container').style.display = 'block';
+            document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
+            document.getElementById('testo-email-utente').textContent = email;
 
-        function aggiornaStatistiche() {
+            aggiornaStatistiche();
+            aggiornaListaTracce(email);
+        }
+
+        async function aggiornaStatistiche() {
             // Conta le voci nel Logbook
-            const storicoLog = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+            let storicoLog = [];
+            let storicoQuiz = [];
+            try {
+                storicoLog = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+                storicoQuiz = JSON.parse(localStorage.getItem('nave_storico_quiz') || "[]");
+            } catch (errore) {
+                console.warn('Statistiche locali non valide.', errore);
+            }
             document.getElementById('stat-logbook').textContent = storicoLog.length;
-
-            // Conta le simulazioni dei quiz (se hai implementato un salvataggio locale nel modulo quiz)
-            const storicoQuiz = JSON.parse(localStorage.getItem('nave_storico_quiz') || "[]");
             document.getElementById('stat-quiz').textContent = storicoQuiz.length;
 
             // Carica i dati del profilo salvati
             document.getElementById('profilo-qualifica').value = localStorage.getItem('profilo_qualifica') || "";
             document.getElementById('profilo-barca').value = localStorage.getItem('profilo_barca') || "";
             document.getElementById('profilo-base').value = localStorage.getItem('profilo_base') || "";
+
+            const sessione = leggiSessione();
+            if (!sessione) return;
+
+            try {
+                const riepilogo = await richiestaAPI({
+                    azione: 'carica_riepilogo',
+                    email: sessione.email,
+                    sessionToken: sessione.token
+                });
+
+                if (riepilogo.status === 'successo') {
+                    document.getElementById('stat-logbook').textContent = riepilogo.vociLogbook || 0;
+                    document.getElementById('stat-quiz').textContent = riepilogo.quizSvolti || 0;
+                }
+            } catch (errore) {
+                console.warn('Statistiche cloud non disponibili; uso i dati locali.', errore);
+            }
         }
 
         async function salvaDatiProfilo() {
-    const sessione = leggiSessione();
-    const qualifica = document.getElementById('profilo-qualifica').value;
-    const barca = document.getElementById('profilo-barca').value;
-    const base = document.getElementById('profilo-base').value;
+            const sessione = leggiSessione();
+            const qualifica = document.getElementById('profilo-qualifica').value;
+            const barca = document.getElementById('profilo-barca').value;
+            const base = document.getElementById('profilo-base').value;
+            const statoProfilo = document.getElementById('stato-profilo');
 
-    // Salvataggio offline istantaneo sul dispositivo
-    localStorage.setItem('profilo_qualifica', qualifica);
-    localStorage.setItem('profilo_barca', barca);
-    localStorage.setItem('profilo_base', base);
+            statoProfilo.classList.remove('is-saved');
+            statoProfilo.textContent = 'Salvataggio in corso...';
 
-    // Se l'utente non ha fatto l'accesso, si ferma al salvataggio locale
-    if (!sessione) return;
+            // Salvataggio offline istantaneo sul dispositivo
+            localStorage.setItem('profilo_qualifica', qualifica);
+            localStorage.setItem('profilo_barca', barca);
+            localStorage.setItem('profilo_base', base);
 
-    // Invio diretto al "cloud" (Google Sheets)
-    try {
-        await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                azione: "salva_profilo",
-                email: sessione.email,
-                sessionToken: sessione.token,
-                qualifica: qualifica,
-                barca: barca,
-                base: base
-            })
-        });
-        console.log("Profilo inviato al database.");
-    } catch (e) {
-        console.error("Errore di rete durante la sincronizzazione.");
-    }
-}
+            // Se l'utente non ha fatto l'accesso, si ferma al salvataggio locale
+            if (!sessione) {
+                statoProfilo.classList.add('is-saved');
+                statoProfilo.textContent = 'Salvato sul dispositivo';
+                return;
+            }
+
+            // Invio diretto al "cloud" (Google Sheets)
+            try {
+                await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        azione: "salva_profilo",
+                        email: sessione.email,
+                        sessionToken: sessione.token,
+                        qualifica: qualifica,
+                        barca: barca,
+                        base: base
+                    })
+                });
+                console.log("Profilo inviato al database.");
+                statoProfilo.classList.add('is-saved');
+                statoProfilo.textContent = 'Salvato sul dispositivo e nel cloud';
+            } catch (e) {
+                console.error("Errore di rete durante la sincronizzazione.");
+                statoProfilo.textContent = 'Salvato sul dispositivo; cloud non raggiungibile';
+            }
+        }
 
         function esciAccount() {
-    cancellaSessione();
-    document.getElementById('form-container').style.display = 'block';
-    document.getElementById('profilo-container').style.display = 'none';
-    document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
-    document.getElementById('auth-email').value = "";
-    document.getElementById('auth-password').value = "";
-    document.getElementById('auth-status').textContent = "";
-}
+            cancellaSessione();
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('profilo-container').style.display = 'none';
+            document.getElementById('sottotitolo-pagina').textContent = "Gestione profilo e statistiche di bordo";
+            document.getElementById('auth-email').value = "";
+            document.getElementById('auth-password').value = "";
+            document.getElementById('auth-status').textContent = "";
+        }
 
         // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---
         function escapeHtml(value) {
@@ -343,7 +599,7 @@
             } catch {
                 storico = [];
             }
-            
+
             if (storico.length === 0) {
                 contenitore.innerHTML = "<p style='color:#94a3b8; font-size:0.9rem;'>Nessuna traccia GPS registrata.</p>";
                 return;
@@ -354,10 +610,10 @@
                 const R = 3440.065; // Raggio della Terra in Miglia Nautiche
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
-                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
             }
 
             let html = "";
@@ -372,7 +628,7 @@
                     // Somma la distanza di tutti i piccoli segmenti
                     for (let i = 1; i < punti.length; i++) {
                         distanzaNm += calcolaDistanzaMiglia(
-                            punti[i-1].lat, punti[i-1].lon,
+                            punti[i - 1].lat, punti[i - 1].lon,
                             punti[i].lat, punti[i].lon
                         );
                     }
@@ -386,7 +642,7 @@
                         const velMediaNodi = distanzaNm / tempoOre;
                         const distanzaKm = distanzaNm * 1.852;
                         const velMediaKmh = velMediaNodi * 1.852;
-                        
+
                         const oreF = Math.floor(tempoOre);
                         const minF = Math.round((tempoOre - oreF) * 60);
 
@@ -415,7 +671,7 @@
         }
 
         // Nuova funzione per estrarre il GPX senza bloccare la memoria del browser
-        window.esportaTracciaDaId = function(tracciaId) {
+        window.esportaTracciaDaId = function (tracciaId) {
             const emailUtente = localStorage.getItem('plancia_utente');
             const storico = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
             const traccia = storico.find(t => t.id === tracciaId);
@@ -426,14 +682,14 @@
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
             <gpx version="1.1" creator="Poseidon Navigazione">
                 <trk><name>${traccia.nome || 'Rotta_Salvata'}</name><trkseg>`;
-            
+
             // Gestiamo eventuali differenze nei nomi delle variabili salvate dalla mappa
             const punti = traccia.punti || traccia.percorso || [];
-            
+
             punti.forEach(p => {
                 const lat = p.lat || p.latitudine;
                 const lon = p.lon || p.lng || p.longitudine;
-                const velMS = (parseFloat(p.vel || 0) / 1.94384).toFixed(2); 
+                const velMS = (parseFloat(p.vel || 0) / 1.94384).toFixed(2);
                 gpx += `\n<trkpt lat="${lat}" lon="${lon}"><time>${p.time || new Date().toISOString()}</time><speed>${velMS}</speed></trkpt>`;
             });
 
@@ -441,7 +697,7 @@
 
             // Crea il file fisico
             const file = new File([gpx], `Navigazione_Rotta_${traccia.id || 'export'}.gpx`, { type: 'application/gpx+xml' });
-            
+
             // Se siamo su Android (o browser compatibile), usa il menu di Condivisione Nativo
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
@@ -468,9 +724,9 @@
         async function esportaBackupRotte() {
             // Estrae tutto il blocco dalla memoria locale
             const dati = localStorage.getItem("navigazione_rotte") || "[]";
-            const nomeFile = `Navigazione_Backup_Rotte_${new Date().toISOString().slice(0,10)}.json`;
+            const nomeFile = `Navigazione_Backup_Rotte_${new Date().toISOString().slice(0, 10)}.json`;
             const file = new File([dati], nomeFile, { type: "application/json" });
-            
+
             // Usa il menu di condivisione di Android
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
@@ -499,17 +755,17 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
                     if (Array.isArray(parsed)) {
                         // Sovrascrive la memoria con il backup
                         localStorage.setItem("navigazione_rotte", JSON.stringify(parsed));
-                        
+
                         // Aggiorna istantaneamente la lista visiva a schermo
                         const email = localStorage.getItem('plancia_utente');
                         aggiornaListaTracce(email);
-                        
+
                         alert("Backup ripristinato con successo! Rotte ricaricate nella plancia.");
                     } else {
                         alert("Il file selezionato non è un backup valido di Navigazione.");
@@ -525,4 +781,5 @@
 
     </script>
 </body>
+
 </html>

@@ -1,5 +1,8 @@
 {
   "appId": "com.lucaguermandi.poseidon",
   "appName": "Poseidon",
-  "webDir": "www"
+  "webDir": "www",
+  "android": {
+    "useLegacyBridge": true
+  }
 }

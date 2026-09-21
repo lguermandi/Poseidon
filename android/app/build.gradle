@@ -24,6 +24,14 @@ android {
     }
 }
 
+// Mantiene riconoscibile ogni APK scaricato, indicando quando e stato generato.
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        def dataBuild = new Date().format('yyyy-MM-dd_HH-mm')
+        outputFileName = "Poseidon_${dataBuild}_${variant.name}.apk"
+    }
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'

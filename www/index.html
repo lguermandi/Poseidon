@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plancia di Comando Nautica</title>
-    
+
     <!-- Colleghiamo il CSS e il file di Configurazione -->
     <link rel="stylesheet" href="css/style.css">
-    
+
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <!-- INIZIO CODICE PWA (App Offline) -->
@@ -16,6 +17,7 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3143/3143621.png">
     <!-- FINE CODICE PWA -->
 </head>
+
 <body>
 
     <header id="main-header">
@@ -26,13 +28,13 @@
                 <i class="ph ph-graduation-cap"></i>
                 <span>Accademia</span>
             </button>
-            
+
             <!-- Pulsante 2: Navigazione -->
             <button onclick="cambiaModulo('moduli/navigazione.html', this)" class="nav-btn">
                 <i class="ph ph-compass"></i>
                 <span>Navigazione</span>
             </button>
-            
+
             <!-- Pulsante 3: Profilo -->
             <button onclick="cambiaModulo('moduli/profilo.html', this)" class="nav-btn">
                 <i class="ph ph-user"></i>
@@ -46,21 +48,47 @@
         <iframe id="app-frame" src="moduli/accademia.html"></iframe>
     </main>
 
-<script defer src="js/app-shell.js"></script>
+    <script defer src="js/app-shell.js"></script>
 
-<script>
-    function cambiaModulo(url, elementoBtn) {
-        // Cambia la pagina proiettata nell'iframe
-        document.getElementById('app-frame').src = url;
-        
-        // Spegne tutti i pulsanti (rimuove il colore azzurro)
-        const bottoni = document.querySelectorAll('.nav-btn');
-        bottoni.forEach(btn => btn.classList.remove('active'));
-        
-        // Accende di azzurro solo il bottone che hai appena cliccato
-        elementoBtn.classList.add('active');
-    }
-</script>
+    <script>
+        const appFrame = document.getElementById('app-frame');
+
+        function adattaAltezzaModulo() {
+            try {
+                const documentoModulo = appFrame.contentDocument;
+                const altezzaModulo = Math.max(
+                    documentoModulo.body.scrollHeight,
+                    documentoModulo.documentElement.scrollHeight
+                );
+                appFrame.style.height = `${Math.max(altezzaModulo + 8, 520)}px`;
+            } catch (errore) {
+                // I moduli locali sono same-origin; mantiene l'altezza CSS come fallback.
+            }
+        }
+
+        appFrame.addEventListener('load', () => {
+            adattaAltezzaModulo();
+            if (typeof ResizeObserver !== 'undefined') {
+                const osservatore = new ResizeObserver(adattaAltezzaModulo);
+                osservatore.observe(appFrame.contentDocument.documentElement);
+            }
+        });
+
+        window.addEventListener('resize', adattaAltezzaModulo);
+
+        function cambiaModulo(url, elementoBtn) {
+            // Cambia la pagina proiettata nell'iframe
+            appFrame.src = url;
+
+            // Spegne tutti i pulsanti (rimuove il colore azzurro)
+            const bottoni = document.querySelectorAll('.nav-btn');
+            bottoni.forEach(btn => btn.classList.remove('active'));
+
+            // Accende di azzurro solo il bottone che hai appena cliccato
+            elementoBtn.classList.add('active');
+        }
+    </script>
 
 </body>
+
 </html>

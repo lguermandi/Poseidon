@@ -1,16 +1,37 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        .logbook-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 15px; }
-        .logbook-table th, .logbook-table td { border: 1px solid #334155; padding: 8px; text-align: center; color: #f8fafc; }
-        .logbook-table th { background: #1e293b; color: #38bdf8; }
-        .hidden { display: none !important; }
+        .logbook-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 15px;
+        }
+
+        .logbook-table th,
+        .logbook-table td {
+            border: 1px solid #334155;
+            padding: 8px;
+            text-align: center;
+            color: #f8fafc;
+        }
+
+        .logbook-table th {
+            background: #1e293b;
+            color: #38bdf8;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <h1>Giornale di Bordo (Logbook) 📖</h1>
@@ -30,9 +51,16 @@
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-action" style="background: #38bdf8; color: #0f172a; font-weight: bold;" onclick="registraPuntoGPS()">📍 Annota Punto GPS Attuale</button>
-            <button class="btn-action" style="background: #ef4444;" onclick="pulisciLogbook()">🗑️ Svuota Registro</button>
+            <button class="btn-action" style="background: #38bdf8; color: #0f172a; font-weight: bold;"
+                onclick="registraPuntoGPS()">📍 Annota Punto GPS Attuale</button>
+            <button class="btn-action" style="background: #ef4444;" onclick="pulisciLogbook()">🗑️ Svuota
+                Registro</button>
+            <button class="btn-action" style="background: #10b981;" onclick="condividiRegistroSicurezza()">🛡️ Condividi
+                Registro Sicurezza</button>
         </div>
+        <p style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 0;">Il registro raccoglie eventi, orari, posizione e
+            dati della barca per la condivisione con gli utenti autorizzati. Non sostituisce una certificazione legale.
+        </p>
         <p id="stato-log" style="margin-top: 10px; color: #fb923c; font-size: 0.85rem;"></p>
     </div>
 
@@ -117,7 +145,7 @@
 
                 mostraLogbook();
                 stato.textContent = "Punto annotato con successo nel Giornale di Bordo!";
-                
+
                 // Pulisce i campi di testo
                 document.getElementById('nota-meteo').value = "";
                 document.getElementById('nota-testo').value = "";
@@ -163,6 +191,77 @@
                 document.getElementById('stato-log').textContent = "Registro svuotato.";
             }
         }
+
+        async function sha256(testo) {
+            const dati = new TextEncoder().encode(testo);
+            const digest = await crypto.subtle.digest('SHA-256', dati);
+            return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function condividiRegistroSicurezza() {
+            let rotte = [];
+            try {
+                rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || '[]');
+                if (!Array.isArray(rotte)) rotte = [];
+            } catch {
+                rotte = [];
+            }
+            let tracciaAttiva = null;
+            try {
+                tracciaAttiva = JSON.parse(localStorage.getItem('navigazione_traccia_attiva') || 'null');
+            } catch {
+                tracciaAttiva = null;
+            }
+
+            const sessione = (() => {
+                try {
+                    return JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
+                } catch {
+                    return null;
+                }
+            })();
+            const registro = {
+                formato: 'Poseidon-Safety-Record-v1',
+                creatoUTC: new Date().toISOString(),
+                proprietario: sessione?.email || 'utente-locale',
+                imbarcazione: localStorage.getItem('profilo_barca') || 'Non specificata',
+                portoBase: localStorage.getItem('profilo_base') || 'Non specificato',
+                rotte,
+                tracciaAttiva,
+                logbook: registroLog
+            };
+            registro.hashSHA256 = await sha256(JSON.stringify(registro));
+
+            const contenuto = JSON.stringify(registro, null, 2);
+            const nomeFile = `Poseidon_Registro_Sicurezza_${new Date().toISOString().replace(/[T:]/g, '-').slice(0, 16)}.json`;
+            const file = new File([contenuto], nomeFile, { type: 'application/json' });
+
+            if (sessione?.token && sessione.email) {
+                fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        azione: 'salva_dati',
+                        email: sessione.email,
+                        sessionToken: sessione.token,
+                        tipoDato: 'registro_sicurezza_completo',
+                        contenuto: registro
+                    })
+                }).catch(() => console.warn('Registro locale creato, cloud non raggiungibile.'));
+            }
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: 'Registro sicurezza Poseidon', text: 'Registro navigazione condivisibile con utenti autorizzati.' });
+            } else {
+                const url = URL.createObjectURL(file);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = nomeFile;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+            document.getElementById('stato-log').textContent = `Registro pronto: hash ${registro.hashSHA256.slice(0, 16)}...`;
+        }
     </script>
 </body>
+
 </html>
