@@ -366,6 +366,10 @@
 
     // --- 2. TRACCIAMENTO SATELLITARE GPS (Live) ---
     window.avviaGPS = async function (riprendi = false) {
+        if (inNavigazione && (watchId !== null || bgWatcherId !== null)) {
+            return;
+        }
+
         inNavigazione = true;
         const tracciaSalvata = riprendi ? leggiTracciaAttiva() : null;
         gpsTrack = tracciaSalvata?.punti.map(punto => L.latLng(punto.lat, punto.lon)) || [];
@@ -400,7 +404,7 @@
 
         const allarmeGPS = (errore) => {
             console.warn("Errore Sensore:", errore);
-            alert("⚠️ ATTENZIONE: Segnale satellitare assente o permessi negati. Assicurati che la Posizione (GPS) sia attiva sul tuo dispositivo per poter tracciare la rotta.");
+            alert("⚠️ ATTENZIONE: GPS non disponibile o timeout. Verifica che la Posizione sia attiva e che il dispositivo abbia segnale. Tracciamento fermato.");
             window.fermaGPS();
             if (window.resetUINavigazione) window.resetUINavigazione();
         };
@@ -427,17 +431,20 @@
             }).then(id => { bgWatcherId = id; }).catch(allarmeGPS);
         } else {
             if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    (pos) => elaboraCoordinate(pos.coords.latitude, pos.coords.longitude, pos.coords.speed, pos.timestamp),
-                    (err) => {
-                        if (err.code === 1 || err.code === 2) allarmeGPS(err);
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        elaboraCoordinate(pos.coords.latitude, pos.coords.longitude, pos.coords.speed, pos.timestamp);
+                        watchId = navigator.geolocation.watchPosition(
+                            (posizione) => elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp),
+                            (err) => allarmeGPS(err),
+                            { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+                        );
                     },
-                    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+                    (err) => allarmeGPS(err),
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
             } else {
-                alert("Sensore GPS non supportato dal dispositivo.");
-                window.fermaGPS();
-                if (window.resetUINavigazione) window.resetUINavigazione();
+                allarmeGPS(new Error("Sensore GPS non supportato dal dispositivo."));
             }
         }
     };

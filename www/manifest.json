@@ -8,9 +8,9 @@
   "description": "App per il carteggio, quiz patente e tattica vela.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3143/3143621.png",
+      "src": "img/icona.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
