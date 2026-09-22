@@ -178,66 +178,23 @@
             color: white;
             cursor: pointer;
         }
-
-        .tracking-banner {
-            position: fixed;
-            top: 92px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: none;
-            align-items: center;
-            gap: 10px;
-            z-index: 1500;
-            width: min(420px, calc(100% - 30px));
-            box-sizing: border-box;
-            padding: 11px 15px;
-            border: 1px solid #4ade80;
-            border-radius: 12px;
-            background: rgba(6, 78, 59, 0.95);
-            color: #f0fdf4;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-            font-size: 0.9rem;
-        }
-
-        .tracking-banner.visible {
-            display: flex;
-        }
-
-        .tracking-dot {
-            width: 10px;
-            height: 10px;
-            flex: 0 0 10px;
-            border-radius: 50%;
-            background: #4ade80;
-            box-shadow: 0 0 0 5px rgba(74, 222, 128, 0.18);
-        }
     </style>
 </head>
 
 <body>
 
-    <!-- Mappa -->
-    <div id="mappa-container"></div>
-
-    <!-- HUD Superiore -->
-    <div class="hud-top">
-        <div class="hud-box">
-            <div class="hud-label">Dist (Nm)</div>
-            <div class="hud-value" id="distanza-totale">0.00</div>
-        </div>
-        <div class="hud-box">
-            <div class="hud-label">SOG (Kn)</div>
-            <div class="hud-value" id="velocita-attuale">0.0</div>
-        </div>
-        <div class="hud-box">
-            <div class="hud-label">Tempo</div>
-            <div class="hud-value" id="tempo-trascorso">00:00</div>
-        </div>
+    <div class="hud-box">
+        <div class="hud-label">Dist (Nm)</div>
+        <div class="hud-value" id="distanza-totale">0.00</div>
     </div>
-
-    <div class="tracking-banner" id="tracking-banner" role="status" aria-live="polite">
-        <span class="tracking-dot"></span>
-        <span>Registrazione percorso attiva: posizione in aggiornamento</span>
+    <div class="hud-box">
+        <div class="hud-label">SOG (Kn)</div>
+        <div class="hud-value" id="velocita-attuale">0.0</div>
+    </div>
+    <div class="hud-box">
+        <div class="hud-label">Tempo</div>
+        <div class="hud-value" id="tempo-trascorso">00:00</div>
+    </div>
     </div>
 
     <!-- Controlli Mappa (FAB) -->
@@ -259,6 +216,7 @@
             Seleziona un'azione per chiudere l'itinerario.
         </div>
         <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #0ea5e9;" onclick="esportaGPX()">📤 Esporta GPX</button>
             <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
             <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in
                 Profilo</button>

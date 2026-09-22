@@ -1,28 +1,62 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        .radar-box { 
-            background: #0f172a; padding: 30px; border-radius: 50%; width: 220px; height: 220px; 
-            margin: 20px auto; display: flex; flex-direction: column; justify-content: center; 
-            align-items: center; border: 4px solid #334155; transition: all 0.3s ease; 
+        .radar-box {
+            background: #0f172a;
+            padding: 30px;
+            border-radius: 50%;
+            width: 220px;
+            height: 220px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 4px solid #334155;
+            transition: all 0.3s ease;
         }
-        .radar-box.allarme { 
-            border-color: #ef4444; background: #450a0a; animation: pulse 1s infinite; 
+
+        .radar-box.allarme {
+            border-color: #ef4444;
+            background: #450a0a;
+            animation: pulse 1s infinite;
         }
-        @keyframes pulse { 
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
-            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
         }
-        .distanza-val { font-size: 3rem; font-weight: bold; color: #4ade80; }
-        .radar-box.allarme .distanza-val { color: #f8fafc; }
-        .hidden { display: none !important; }
+
+        .distanza-val {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .radar-box.allarme .distanza-val {
+            color: #f8fafc;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <h1>Allarme Ancora ⚓</h1>
@@ -41,7 +75,7 @@
     <!-- Monitoraggio -->
     <div class="panel hidden" id="pannello-radar" style="text-align: center;">
         <h3 id="titolo-radar" style="color: #4ade80;">Ancora Fissata - Monitoraggio Attivo</h3>
-        
+
         <div class="radar-box" id="radar">
             <span style="color: #94a3b8; font-size: 0.9rem;">Distanza</span>
             <div class="distanza-val" id="distanza-attuale">0</div>
@@ -57,20 +91,41 @@
         let latAncora = null;
         let lonAncora = null;
         let raggioMax = 30;
+        let allarmeGiaNotificato = false;
+        const notificheLocali = window.Capacitor?.Plugins?.LocalNotifications;
+
+        async function notificaAllarmeAncora(distanzaMetri) {
+            if (allarmeGiaNotificato || !notificheLocali) return;
+            allarmeGiaNotificato = true;
+            try {
+                const permessi = await notificheLocali.checkPermissions();
+                if (permessi.display !== 'granted') await notificheLocali.requestPermissions();
+                await notificheLocali.schedule({
+                    notifications: [{
+                        id: 91001,
+                        title: '🚨 Poseidon: ancora spedata',
+                        body: `Distanza dal punto di ancoraggio: ${distanzaMetri} metri.`,
+                        schedule: { at: new Date(Date.now() + 250) }
+                    }]
+                });
+            } catch (errore) {
+                console.warn('Notifica allarme ancora non disponibile.', errore);
+            }
+        }
 
         // Algoritmo di Haversine per calcolare i metri esatti tra due coordinate GPS
         function calcolaDistanza(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Raggio della terra in metri
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; 
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
         }
 
         function calaAncora() {
@@ -89,10 +144,12 @@
             navigator.geolocation.getCurrentPosition((position) => {
                 latAncora = position.coords.latitude;
                 lonAncora = position.coords.longitude;
-                
+                allarmeGiaNotificato = false;
+                localStorage.setItem('poseidon_ancora_attiva', JSON.stringify({ lat: latAncora, lon: lonAncora, raggio: raggioMax, attivataUTC: new Date().toISOString() }));
+
                 document.getElementById('pannello-setup').classList.add('hidden');
                 document.getElementById('pannello-radar').classList.remove('hidden');
-                
+
                 // Inizia a "guardare" la posizione in tempo reale
                 watchId = navigator.geolocation.watchPosition(controllaPosizione, (err) => {
                     console.error("Errore lettura GPS continua:", err);
@@ -106,10 +163,10 @@
         function controllaPosizione(position) {
             const latAttuale = position.coords.latitude;
             const lonAttuale = position.coords.longitude;
-            
+
             // Calcola a quanti metri siamo dal punto in cui abbiamo premuto il bottone
             const distanzaMetri = Math.round(calcolaDistanza(latAncora, lonAncora, latAttuale, lonAttuale));
-            
+
             document.getElementById('distanza-attuale').textContent = distanzaMetri;
 
             const radar = document.getElementById('radar');
@@ -120,7 +177,7 @@
                 radar.classList.add('allarme');
                 titolo.textContent = "🚨 PERICOLO: ANCORA SPEDATA! 🚨";
                 titolo.style.color = "#ef4444";
-                // Qui in futuro potremmo aggiungere un suono: new Audio('allarme.mp3').play();
+                notificaAllarmeAncora(distanzaMetri);
             } else {
                 radar.classList.remove('allarme');
                 titolo.textContent = "Ancora Fissata - Monitoraggio Attivo";
@@ -132,11 +189,15 @@
             // Ferma il tracciamento GPS per risparmiare batteria
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
+                watchId = null;
             }
+            allarmeGiaNotificato = false;
+            localStorage.removeItem('poseidon_ancora_attiva');
             document.getElementById('pannello-radar').classList.add('hidden');
             document.getElementById('pannello-setup').classList.remove('hidden');
             document.getElementById('stato-gps').textContent = "";
         }
     </script>
 </body>
+
 </html>

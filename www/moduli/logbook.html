@@ -29,6 +29,111 @@
         .hidden {
             display: none !important;
         }
+
+        .logbook-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logbook-stat {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .logbook-stat strong {
+            display: block;
+            color: #38bdf8;
+            font-size: 1.35rem;
+        }
+
+        .logbook-stat span {
+            color: #94a3b8;
+            font-size: .72rem;
+        }
+
+        .logbook-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .logbook-form .wide {
+            grid-column: 1 / -1;
+        }
+
+        .logbook-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .logbook-actions .btn-action {
+            flex: 1;
+            min-width: 190px;
+        }
+
+        .foto-preview {
+            max-width: 180px;
+            max-height: 100px;
+            border-radius: 8px;
+            margin-top: 8px;
+            object-fit: cover;
+        }
+
+        .foto-cell {
+            max-width: 70px;
+            max-height: 45px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .logbook-form textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--bordo-soft);
+            background: var(--bg-profondo);
+            color: var(--testo-primario);
+            font: inherit;
+            resize: vertical;
+        }
+
+        .rotte-recenti {
+            display: grid;
+            gap: 8px;
+        }
+
+        .rotta-riepilogo {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+            color: #cbd5e1;
+            font-size: .82rem;
+        }
+
+        @media (max-width: 600px) {
+            .logbook-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .logbook-form {
+                grid-template-columns: 1fr;
+            }
+
+            .logbook-form .wide {
+                grid-column: auto;
+            }
+        }
     </style>
 </head>
 
@@ -37,22 +142,41 @@
     <h1>Giornale di Bordo (Logbook) 📖</h1>
     <div class="subtitle">Registrazione cronologica e dati di rotta in tempo reale</div>
 
+    <div class="logbook-stats" id="logbook-stats">
+        <div class="logbook-stat"><strong id="stat-voci">0</strong><span>Voci diario</span></div>
+        <div class="logbook-stat"><strong id="stat-rotte">0</strong><span>Navigazioni</span></div>
+        <div class="logbook-stat"><strong id="stat-miglia">0.0</strong><span>Miglia nautiche</span></div>
+        <div class="logbook-stat"><strong id="stat-tempo">0h</strong><span>Tempo navigato</span></div>
+    </div>
+
     <!-- Pannello di Controllo / Annotazione -->
     <div class="panel">
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div class="input-group" style="flex: 1; min-width: 200px;">
+        <div class="logbook-form">
+            <div class="input-group">
+                <label>Data e ora</label>
+                <input type="datetime-local" id="nota-data">
+            </div>
+            <div class="input-group">
                 <label>Condizioni Meteo / Stato del Mare</label>
                 <input type="text" id="nota-meteo" placeholder="Es. Mare calmo, vento da SE 10 nodi">
             </div>
-            <div class="input-group" style="flex: 1; min-width: 200px;">
+            <div class="input-group wide">
                 <label>Note di Bordo / Attività</label>
-                <input type="text" id="nota-testo" placeholder="Es. Virata a sinistra, controllo sentina">
+                <textarea id="nota-testo" rows="3" placeholder="Es. Virata a sinistra, controllo sentina"></textarea>
+            </div>
+            <div class="input-group wide">
+                <label>Foto di bordo (opzionale)</label>
+                <input type="file" id="nota-foto" accept="image/*" capture="environment"
+                    onchange="anteprimaFoto(event)">
+                <img class="foto-preview hidden" id="foto-preview" alt="Anteprima foto di bordo">
             </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <div class="logbook-actions">
             <button class="btn-action" style="background: #38bdf8; color: #0f172a; font-weight: bold;"
-                onclick="registraPuntoGPS()">📍 Annota Punto GPS Attuale</button>
+                onclick="registraVoceDiario(true)">📍 Salva con posizione</button>
+            <button class="btn-action" style="background: #0ea5e9;" onclick="registraVoceDiario(false)">📝 Salva
+                nota</button>
             <button class="btn-action" style="background: #ef4444;" onclick="pulisciLogbook()">🗑️ Svuota
                 Registro</button>
             <button class="btn-action" style="background: #10b981;" onclick="condividiRegistroSicurezza()">🛡️ Condividi
@@ -64,6 +188,13 @@
         <p id="stato-log" style="margin-top: 10px; color: #fb923c; font-size: 0.85rem;"></p>
     </div>
 
+    <div class="panel">
+        <h3 style="color: #38bdf8; margin-top: 0;">Ultime navigazioni</h3>
+        <div class="rotte-recenti" id="rotte-recenti">
+            <p style="color:#94a3b8;">Nessuna navigazione salvata.</p>
+        </div>
+    </div>
+
     <!-- Tabella Storico Logbook -->
     <div class="panel" id="pannello-tabella">
         <h3 style="color: #38bdf8; margin-top: 0;">Registro di Navigazione</h3>
@@ -71,11 +202,12 @@
             <table class="logbook-table">
                 <thead>
                     <tr>
-                        <th>Ora (UTC)</th>
+                        <th>Data e ora</th>
                         <th>Latitudine</th>
                         <th>Longitudine</th>
                         <th>Meteo / Mare</th>
                         <th>Note Equipaggio</th>
+                        <th>Foto</th>
                     </tr>
                 </thead>
                 <tbody id="corpo-logbook">
@@ -94,71 +226,91 @@
         } catch {
             registroLog = [];
         }
+        document.getElementById('nota-data').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         mostraLogbook();
+        aggiornaStatistiche();
+        mostraRotteRecenti();
+        window.addEventListener('online', sincronizzaLogbook);
 
-        function registraPuntoGPS() {
+        function anteprimaFoto(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('foto-preview');
+            if (!file) { preview.classList.add('hidden'); return; }
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('hidden');
+        }
+
+        function leggiFoto() {
+            const file = document.getElementById('nota-foto').files[0];
+            if (!file) return Promise.resolve('');
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function sessioneCorrente() {
+            try { return JSON.parse(localStorage.getItem('poseidon_sessione') || sessionStorage.getItem('poseidon_sessione') || 'null'); } catch { return null; }
+        }
+
+        async function registraVoceDiario(conPosizione) {
             const stato = document.getElementById('stato-log');
             const meteo = document.getElementById('nota-meteo').value || "N/D";
             const testo = document.getElementById('nota-testo').value || "Navigazione regolare";
+            const dataOra = document.getElementById('nota-data').value ? new Date(document.getElementById('nota-data').value) : new Date();
+            stato.textContent = conPosizione ? "Acquisizione posizione satellitare in corso..." : "Salvataggio della nota...";
 
-            if (!navigator.geolocation) {
-                stato.textContent = "Errore: GPS non supportato dal dispositivo.";
-                return;
-            }
+            try {
+                let lat = 'N/D';
+                let lon = 'N/D';
+                if (conPosizione) {
+                    if (!navigator.geolocation) throw new Error('GPS non supportato');
+                    const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000 }));
+                    lat = position.coords.latitude.toFixed(6) + '°';
+                    lon = position.coords.longitude.toFixed(6) + '°';
+                }
+                const foto = await leggiFoto();
+                const nuovaVoce = { timestampUTC: dataOra.toISOString(), ora: dataOra.toLocaleString('it-IT'), lat, lon, meteo, testo, foto };
 
-            stato.textContent = "Acquisizione posizione satellitare in corso...";
-
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude.toFixed(4);
-                const lon = position.coords.longitude.toFixed(4);
-                const oraEsatta = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-
-                // Crea l'oggetto voce di bordo
-                const nuovaVoce = {
-                    ora: oraEsatta,
-                    lat: lat + "° N",
-                    lon: lon + "° E",
-                    meteo: meteo,
-                    testo: testo
-                };
-
-                // Aggiunge in cima alla lista e salva in locale
                 registroLog.unshift(nuovaVoce);
                 localStorage.setItem('nave_logbook', JSON.stringify(registroLog));
-
-                // INVIO AUTOMATICO AL CLOUD
-                const sessione = JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
-                if (sessione && sessione.token && sessione.email) {
-                    // Inserisci qui l'URL del tuo script Google!
-                    const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
-                    fetch(API_URL, {
-                        method: "POST",
-                        body: JSON.stringify({
-                            azione: "salva_dati",
-                            email: sessione.email,
-                            sessionToken: sessione.token,
-                            tipoDato: "logbook",
-                            contenuto: registroLog
-                        })
-                    }).catch(e => console.log("Sincronizzazione in background fallita"));
-                }
+                await sincronizzaLogbook();
 
                 mostraLogbook();
-                stato.textContent = "Punto annotato con successo nel Giornale di Bordo!";
+                aggiornaStatistiche();
+                stato.textContent = "Voce salvata nel Giornale di Bordo.";
 
-                // Pulisce i campi di testo
                 document.getElementById('nota-meteo').value = "";
                 document.getElementById('nota-testo').value = "";
+                document.getElementById('nota-foto').value = "";
+                document.getElementById('foto-preview').classList.add('hidden');
+            } catch (error) {
+                stato.textContent = conPosizione ? "Impossibile rilevare la posizione GPS." : "Impossibile salvare la nota.";
+            }
+        }
 
-            }, (error) => {
-                stato.textContent = "Impossibile rilevare la posizione GPS. Controlla i permessi.";
-            }, { enableHighAccuracy: true });
+        async function sincronizzaLogbook() {
+            const sessione = sessioneCorrente();
+            if (!sessione?.token || !sessione.email || !navigator.onLine) return;
+            const payload = { azione: 'salva_dati', email: sessione.email, sessionToken: sessione.token, tipoDato: 'logbook', contenuto: registroLog };
+            try {
+                const risposta = await fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', { method: 'POST', body: JSON.stringify(payload) });
+                if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
+            } catch {
+                let coda;
+                try { coda = JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]'); } catch { coda = []; }
+                if (!Array.isArray(coda)) coda = [];
+                coda.push({ ...payload, accodataUTC: new Date().toISOString() });
+                localStorage.setItem('poseidon_sync_queue', JSON.stringify(coda));
+            }
         }
 
         function mostraLogbook() {
             const tbody = document.getElementById('corpo-logbook');
             if (registroLog.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="color: #94a3b8; padding: 20px;">Nessuna voce registrata in questo logbook.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="color: #94a3b8; padding: 20px;">Nessuna voce registrata in questo logbook.</td></tr>`;
                 return;
             }
 
@@ -171,10 +323,33 @@
                         <td style="font-family: monospace;">${escapeHtml(voce.lon)}</td>
                         <td>${escapeHtml(voce.meteo)}</td>
                         <td style="text-align: left; padding-left: 10px;">${escapeHtml(voce.testo)}</td>
+                        <td>${voce.foto ? `<img class="foto-cell" src="${voce.foto}" alt="Foto di bordo">` : '-'}</td>
                     </tr>
                 `;
             });
             tbody.innerHTML = html;
+        }
+
+        function aggiornaStatistiche() {
+            let rotte = [];
+            try { rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || '[]'); } catch { rotte = []; }
+            const miglia = rotte.reduce((totale, rotta) => totale + (Number(rotta.distanza) || 0), 0);
+            const minuti = rotte.reduce((totale, rotta) => {
+                const durata = String(rotta.durata || '').match(/(\d+):([0-5]\d)/);
+                return totale + (durata ? Number(durata[1]) + Number(durata[2]) / 60 : 0);
+            }, 0);
+            document.getElementById('stat-voci').textContent = registroLog.length;
+            document.getElementById('stat-rotte').textContent = rotte.length;
+            document.getElementById('stat-miglia').textContent = miglia.toFixed(1);
+            document.getElementById('stat-tempo').textContent = `${Math.floor(minuti / 60)}h ${Math.round(minuti % 60)}m`;
+        }
+
+        function mostraRotteRecenti() {
+            let rotte = [];
+            try { rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || '[]'); } catch { rotte = []; }
+            const contenitore = document.getElementById('rotte-recenti');
+            if (!rotte.length) return;
+            contenitore.innerHTML = rotte.slice(-5).reverse().map(rotta => `<div class="rotta-riepilogo"><span>${escapeHtml(rotta.nome || 'Navigazione')}</span><strong>${Number(rotta.distanza || 0).toFixed(2)} Nm</strong><span>${escapeHtml(rotta.durata || 'N/D')}</span></div>`).join('');
         }
 
         function escapeHtml(value) {
@@ -188,6 +363,7 @@
                 registroLog = [];
                 localStorage.removeItem('nave_logbook');
                 mostraLogbook();
+                aggiornaStatistiche();
                 document.getElementById('stato-log').textContent = "Registro svuotato.";
             }
         }

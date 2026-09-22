@@ -4,4 +4,7 @@
     <string name="title_activity_main">Poseidon</string>
     <string name="package_name">com.lucaguermandi.poseidon</string>
     <string name="custom_url_scheme">com.lucaguermandi.poseidon</string>
+    <string name="capacitor_background_geolocation_notification_channel_name">Tracciamento percorso</string>
+    <string name="capacitor_background_geolocation_notification_icon">drawable/ic_tracking</string>
+    <string name="capacitor_background_geolocation_notification_color">#0EA5E9</string>
 </resources>

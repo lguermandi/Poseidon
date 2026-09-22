@@ -13,6 +13,8 @@
 
     let inNavigazione = false;
     let bgWatcherId = null;
+    let bgWatcherPromise = null;
+    let trackingSessionId = 0;
     let watchId = null;
     let startTime = null;
     let timerInterval = null;
@@ -24,11 +26,6 @@
     let wakeLock = null;
 
     const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
-
-    function mostraBannerTracking(visibile) {
-        const banner = document.getElementById('tracking-banner');
-        if (banner) banner.classList.toggle('visible', visibile);
-    }
 
     async function richiediPermessiTracking() {
         if (!isNativo) return;
@@ -58,10 +55,23 @@
 
     function proprietarioCorrente() {
         try {
-            return JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null')?.email || 'utente-locale';
+            const sessione = localStorage.getItem('poseidon_sessione') || sessionStorage.getItem('poseidon_sessione');
+            return JSON.parse(sessione || 'null')?.email || 'utente-locale';
         } catch {
             return 'utente-locale';
         }
+    }
+
+    function accodaSincronizzazione(payload) {
+        let coda;
+        try {
+            coda = JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]');
+            if (!Array.isArray(coda)) coda = [];
+        } catch {
+            coda = [];
+        }
+        coda.push({ ...payload, accodataUTC: new Date().toISOString() });
+        localStorage.setItem('poseidon_sync_queue', JSON.stringify(coda));
     }
 
     // --- 1. PLOTTER MANUALE E PIANIFICAZIONE TATTICA ---
@@ -371,12 +381,12 @@
 
     // --- 2. TRACCIAMENTO SATELLITARE GPS (Live) ---
     window.avviaGPS = async function (riprendi = false) {
-        if (inNavigazione && (watchId !== null || bgWatcherId !== null)) {
+        if (inNavigazione) {
             return;
         }
 
         inNavigazione = true;
-        mostraBannerTracking(true);
+        const sessionId = ++trackingSessionId;
         const tracciaSalvata = riprendi ? leggiTracciaAttiva() : null;
         gpsTrack = tracciaSalvata?.punti.map(punto => L.latLng(punto.lat, punto.lon)) || [];
         puntiTracciato = tracciaSalvata?.punti || [];
@@ -422,7 +432,7 @@
                 return;
             }
 
-            backgroundGeolocation.addWatcher({
+            bgWatcherPromise = backgroundGeolocation.addWatcher({
                 backgroundTitle: "Poseidon Navigazione",
                 backgroundMessage: "Registrazione rotta in corso.",
                 requestPermissions: true,
@@ -434,7 +444,17 @@
                     return;
                 }
                 elaboraCoordinate(location.latitude, location.longitude, location.speed, location.time);
-            }).then(id => { bgWatcherId = id; }).catch(allarmeGPS);
+            }).then(async id => {
+                if (!inNavigazione || sessionId !== trackingSessionId) {
+                    await backgroundGeolocation.removeWatcher({ id });
+                    return null;
+                }
+                bgWatcherId = id;
+                return id;
+            }).catch(allarmeGPS).finally(() => {
+                bgWatcherPromise = null;
+            });
+            await bgWatcherPromise;
         } else {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -470,7 +490,7 @@
 
     window.fermaGPS = function () {
         inNavigazione = false;
-        mostraBannerTracking(false);
+        trackingSessionId += 1;
         clearInterval(timerInterval);
         timerInterval = null;
 
@@ -479,6 +499,10 @@
         if (isNativo && bgWatcherId) {
             window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
             bgWatcherId = null;
+        } else if (isNativo && bgWatcherPromise) {
+            // Se i permessi sono ancora in corso, il completamento dello start
+            // vedra inNavigazione=false e rimuovera subito il watcher.
+            bgWatcherPromise.catch(() => { });
         } else if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
@@ -560,7 +584,8 @@
         const dataFormattata = oggi.toLocaleDateString('it-IT') + " " + oggi.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
         const sessione = (() => {
             try {
-                return JSON.parse(sessionStorage.getItem('poseidon_sessione') || 'null');
+                const valore = localStorage.getItem('poseidon_sessione') || sessionStorage.getItem('poseidon_sessione');
+                return JSON.parse(valore || 'null');
             } catch {
                 return null;
             }
@@ -591,18 +616,41 @@
         localStorage.removeItem('navigazione_traccia_attiva');
 
         if (sessione?.token && sessione.email) {
+            const payloadCloud = {
+                azione: 'salva_dati',
+                email: sessione.email,
+                sessionToken: sessione.token,
+                tipoDato: 'registro_sicurezza_rotta',
+                contenuto: nuovaRotta
+            };
             fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', {
                 method: 'POST',
-                body: JSON.stringify({
-                    azione: 'salva_dati',
-                    email: sessione.email,
-                    sessionToken: sessione.token,
-                    tipoDato: 'registro_sicurezza_rotta',
-                    contenuto: nuovaRotta
-                })
-            }).catch(() => console.warn('Sincronizzazione registro sicurezza non disponibile.'));
+                body: JSON.stringify(payloadCloud)
+            }).then((risposta) => {
+                if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
+            }).catch(() => {
+                accodaSincronizzazione(payloadCloud);
+                console.warn('Sincronizzazione registro sicurezza rinviata.');
+            });
         }
 
         window.cancellaRotta();
+    };
+
+    window.esportaGPX = function () {
+        if (puntiTracciato.length < 2) {
+            alert('Registra almeno due punti prima di esportare la traccia.');
+            return;
+        }
+
+        const coordinate = puntiTracciato.map(punto => `\n      <trkpt lat="${Number(punto.lat).toFixed(6)}" lon="${Number(punto.lon).toFixed(6)}"><time>${punto.time}</time><extensions><speed>${Number(punto.vel || 0).toFixed(2)}</speed></extensions></trkpt>`).join('');
+        const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Poseidon" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Rotta Poseidon</name><trkseg>${coordinate}\n    </trkseg></trk></gpx>`;
+        const blob = new Blob([gpx], { type: 'application/gpx+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rotta-poseidon-${new Date().toISOString().slice(0, 10)}.gpx`;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 })();

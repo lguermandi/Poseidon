@@ -318,8 +318,18 @@
                                     onclick="document.getElementById('file-import-rotte').click()">📥
                                     Ripristina</button>
                             </div>
+                            <div class="profile-actions" style="margin-top: 10px;">
+                                <button class="btn-action" style="background: #0ea5e9;"
+                                    onclick="esportaBackupCompleto()">📦 Backup completo</button>
+                                <button class="btn-action" style="background: #475569;"
+                                    onclick="document.getElementById('file-import-completo').click()">♻️ Ripristina
+                                    tutto</button>
+                            </div>
                             <input type="file" id="file-import-rotte" accept=".json" style="display: none;"
                                 onchange="importaBackupRotte(event)">
+                            <input type="file" id="file-import-completo" accept=".json" style="display: none;"
+                                onchange="importaBackupCompleto(event)">
+                            <p id="stato-sincronizzazione" class="profile-save-note">Controllo connessione...</p>
                         </div>
 
                         <div class="profile-card-section">
@@ -340,6 +350,82 @@
         // URL di Google Apps Script richiamato dal parent (index.html)
         const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec";
         const SESSIONE_KEY = 'poseidon_sessione';
+        const DATI_BACKUP_VERSIONE = 2;
+        const CHIAVI_DATI_APP = [
+            'profilo_qualifica', 'profilo_barca', 'profilo_base',
+            'navigazione_rotte', 'navigazione_traccia_attiva',
+            'nave_logbook', 'nave_storico_quiz', 'meteo_sentinella_lista',
+            'poseidon_sync_queue', 'poseidon_checklist_sicurezza',
+            'poseidon_ultima_posizione_sicurezza', 'poseidon_mob_attivo',
+            'poseidon_ancora_attiva'
+        ];
+
+        function leggiDatiLocali() {
+            const dati = {};
+            CHIAVI_DATI_APP.forEach((chiave) => {
+                const valore = localStorage.getItem(chiave);
+                if (valore !== null) dati[chiave] = valore;
+            });
+            return dati;
+        }
+
+        function scaricaFile(nomeFile, contenuto, tipo) {
+            const blob = new Blob([contenuto], { type: `${tipo};charset=utf-8` });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeFile;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function aggiornaStatoSincronizzazione(messaggio, classe = '') {
+            const elemento = document.getElementById('stato-sincronizzazione');
+            if (!elemento) return;
+            elemento.className = `profile-save-note ${classe}`.trim();
+            elemento.textContent = messaggio;
+        }
+
+        function contaSincronizzazioniPendenti() {
+            try {
+                return JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]').length;
+            } catch {
+                return 0;
+            }
+        }
+
+        function accodaSincronizzazione(payload) {
+            let coda;
+            try {
+                coda = JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]');
+                if (!Array.isArray(coda)) coda = [];
+            } catch {
+                coda = [];
+            }
+            coda = payload.azione === 'salva_profilo'
+                ? coda.filter(elemento => elemento.azione !== payload.azione)
+                : coda;
+            coda.push({ ...payload, accodataUTC: new Date().toISOString() });
+            localStorage.setItem('poseidon_sync_queue', JSON.stringify(coda));
+        }
+
+        async function sincronizzaCoda() {
+            const sessione = leggiSessione();
+            if (!sessione || !navigator.onLine || contaSincronizzazioniPendenti() === 0) return;
+            let coda;
+            try { coda = JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]'); } catch { coda = []; }
+            const rimasti = [];
+            for (const payload of coda) {
+                try {
+                    const risultato = await richiestaAPI({ ...payload, email: sessione.email, sessionToken: sessione.token });
+                    if (risultato.status !== 'successo') rimasti.push(payload);
+                } catch {
+                    rimasti.push(payload);
+                }
+            }
+            localStorage.setItem('poseidon_sync_queue', JSON.stringify(rimasti));
+            aggiornaStatoSincronizzazione(rimasti.length ? `${rimasti.length} modifica/e in attesa di sincronizzazione` : 'Dati sincronizzati', rimasti.length ? '' : 'is-saved');
+        }
 
         async function richiestaAPI(payload) {
             const controller = new AbortController();
@@ -359,6 +445,9 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            aggiornaStatoSincronizzazione(navigator.onLine ? 'Connessione disponibile' : 'Modalità offline');
+            window.addEventListener('online', sincronizzaCoda);
+            window.addEventListener('offline', () => aggiornaStatoSincronizzazione('Modalità offline: modifiche salvate sul dispositivo'));
             const sessione = leggiSessione();
             if (!sessione) return;
 
@@ -366,6 +455,7 @@
                 const risultato = await richiestaAPI({ azione: "verifica_sessione", sessionToken: sessione.token });
                 if (risultato.status === "successo") {
                     mostraStatoUtente(risultato.email || sessione.email);
+                    await sincronizzaCoda();
                 } else {
                     cancellaSessione();
                 }
@@ -558,24 +648,29 @@
             }
 
             // Invio diretto al "cloud" (Google Sheets)
+            const payload = {
+                azione: "salva_profilo",
+                email: sessione.email,
+                sessionToken: sessione.token,
+                qualifica: qualifica,
+                barca: barca,
+                base: base
+            };
+
             try {
-                await fetch(API_URL, {
+                const risposta = await fetch(API_URL, {
                     method: "POST",
-                    body: JSON.stringify({
-                        azione: "salva_profilo",
-                        email: sessione.email,
-                        sessionToken: sessione.token,
-                        qualifica: qualifica,
-                        barca: barca,
-                        base: base
-                    })
+                    body: JSON.stringify(payload)
                 });
+                if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
                 console.log("Profilo inviato al database.");
                 statoProfilo.classList.add('is-saved');
                 statoProfilo.textContent = 'Salvato sul dispositivo e nel cloud';
             } catch (e) {
-                console.error("Errore di rete durante la sincronizzazione.");
-                statoProfilo.textContent = 'Salvato sul dispositivo; cloud non raggiungibile';
+                accodaSincronizzazione(payload);
+                console.warn("Sincronizzazione rinviata.", e);
+                statoProfilo.textContent = 'Salvato sul dispositivo; sincronizzazione in attesa';
+                aggiornaStatoSincronizzazione(`${contaSincronizzazioniPendenti()} modifica/e in attesa di sincronizzazione`);
             }
         }
 
@@ -587,6 +682,41 @@
             document.getElementById('auth-email').value = "";
             document.getElementById('auth-password').value = "";
             document.getElementById('auth-status').textContent = "";
+        }
+
+        function esportaBackupCompleto() {
+            const backup = {
+                formato: 'poseidon-backup',
+                versione: DATI_BACKUP_VERSIONE,
+                esportatoUTC: new Date().toISOString(),
+                dati: leggiDatiLocali()
+            };
+            const nomeFile = `Poseidon_Backup_Completo_${new Date().toISOString().slice(0, 10)}.json`;
+            scaricaFile(nomeFile, JSON.stringify(backup, null, 2), 'application/json');
+            aggiornaStatoSincronizzazione('Backup completo esportato', 'is-saved');
+        }
+
+        function importaBackupCompleto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function () {
+                try {
+                    const backup = JSON.parse(reader.result);
+                    if (backup.formato !== 'poseidon-backup' || !backup.dati || typeof backup.dati !== 'object') throw new Error('Formato non valido');
+                    Object.entries(backup.dati).forEach(([chiave, valore]) => {
+                        if (CHIAVI_DATI_APP.includes(chiave) && typeof valore === 'string') localStorage.setItem(chiave, valore);
+                    });
+                    aggiornaStatistiche();
+                    aggiornaListaTracce(leggiSessione()?.email || 'utente-locale');
+                    aggiornaStatoSincronizzazione('Backup completo ripristinato', 'is-saved');
+                    alert('Backup completo ripristinato.');
+                } catch (errore) {
+                    alert('Il file selezionato non è un backup Poseidon valido.');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
         }
 
         // --- FUNZIONI PER STORICO E DOWNLOAD GPX ---

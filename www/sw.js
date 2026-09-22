@@ -1,4 +1,4 @@
-const NOME_CACHE = 'nautica-app-v5';
+const NOME_CACHE = 'nautica-app-v6';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
@@ -22,6 +22,7 @@ const FILE_DA_SALVARE = [
     './moduli/mappa.html',
     './moduli/meteo.html',
     './moduli/ancora.html',
+    './moduli/sicurezza.html',
     './moduli/fari.html',
     './moduli/maree.html',
     './moduli/motore.html',
