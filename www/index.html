@@ -54,28 +54,11 @@
     <script>
         const appFrame = document.getElementById('app-frame');
 
-        function adattaAltezzaModulo() {
-            try {
-                const documentoModulo = appFrame.contentDocument;
-                const altezzaModulo = Math.max(
-                    documentoModulo.body.scrollHeight,
-                    documentoModulo.documentElement.scrollHeight
-                );
-                appFrame.style.height = `${Math.max(altezzaModulo + 8, 520)}px`;
-            } catch (errore) {
-                // I moduli locali sono same-origin; mantiene l'altezza CSS come fallback.
-            }
-        }
-
+        // L'iframe resta vincolato alla viewport: misurare il suo contenuto e
+        // riassegnarne l'altezza crea un ciclo di crescita infinito.
         appFrame.addEventListener('load', () => {
-            adattaAltezzaModulo();
-            if (typeof ResizeObserver !== 'undefined') {
-                const osservatore = new ResizeObserver(adattaAltezzaModulo);
-                osservatore.observe(appFrame.contentDocument.documentElement);
-            }
+            appFrame.contentWindow?.scrollTo(0, 0);
         });
-
-        window.addEventListener('resize', adattaAltezzaModulo);
 
         function cambiaModulo(url, elementoBtn) {
             // Cambia la pagina proiettata nell'iframe
