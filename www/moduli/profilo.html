@@ -411,7 +411,7 @@
 
         async function sincronizzaCoda() {
             const sessione = leggiSessione();
-            if (!sessione || !navigator.onLine || contaSincronizzazioniPendenti() === 0) return;
+            if (!sessione || sessione.offline || !navigator.onLine || contaSincronizzazioniPendenti() === 0) return;
             let coda;
             try { coda = JSON.parse(localStorage.getItem('poseidon_sync_queue') || '[]'); } catch { coda = []; }
             const rimasti = [];
@@ -449,18 +449,26 @@
             window.addEventListener('online', sincronizzaCoda);
             window.addEventListener('offline', () => aggiornaStatoSincronizzazione('Modalità offline: modifiche salvate sul dispositivo'));
             const sessione = leggiSessione();
-            if (!sessione) return;
+            if (!sessione || sessione.offline || !navigator.onLine) {
+                statoProfilo.classList.add('is-saved');
+                statoProfilo.textContent = 'Salvato sul dispositivo; sincronizzazione in attesa';
+                return;
+            }
 
             try {
                 const risultato = await richiestaAPI({ azione: "verifica_sessione", sessionToken: sessione.token });
                 if (risultato.status === "successo") {
                     mostraStatoUtente(risultato.email || sessione.email);
                     await sincronizzaCoda();
-                } else {
+                } else if (/session|token|autorizz/i.test(risultato.messaggio || risultato.errore || '')) {
                     cancellaSessione();
+                } else {
+                    mostraStatoUtente(sessione.email, true);
                 }
             } catch (e) {
-                cancellaSessione();
+                // Un errore di rete non equivale a un logout: conserva l'accesso locale.
+                mostraStatoUtente(sessione.email, true);
+                aggiornaStatoSincronizzazione('Cloud non raggiungibile: modalità offline', '');
             }
         });
 
@@ -468,10 +476,11 @@
             try {
                 const sessioneSalvata = localStorage.getItem(SESSIONE_KEY) || sessionStorage.getItem(SESSIONE_KEY);
                 const sessione = JSON.parse(sessioneSalvata || 'null');
-                if (!sessione || !sessione.token || !sessione.email || sessione.scadenza <= Date.now()) {
+                if (!sessione || !sessione.token || !sessione.email) {
                     cancellaSessione();
                     return null;
                 }
+                sessione.offline = Number(sessione.scadenza) <= Date.now();
                 localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
                 sessionStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
                 return sessione;
@@ -578,11 +587,15 @@
             }
         }
 
-        function mostraStatoUtente(email) {
+        function mostraStatoUtente(email, offline = false) {
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('profilo-container').style.display = 'block';
             document.getElementById('sottotitolo-pagina').textContent = "Cruscotto di Navigazione";
             document.getElementById('testo-email-utente').textContent = email;
+
+            if (offline) {
+                aggiornaStatoSincronizzazione('Modalità offline: dati salvati sul dispositivo', '');
+            }
 
             aggiornaStatistiche();
             aggiornaListaTracce(email);
@@ -640,10 +653,15 @@
             localStorage.setItem('profilo_barca', barca);
             localStorage.setItem('profilo_base', base);
 
-            // Se l'utente non ha fatto l'accesso, si ferma al salvataggio locale
-            if (!sessione) {
+            // In assenza di rete o con token scaduto, conserva il dato e attende la sincronizzazione.
+            if (!sessione || sessione.offline || !navigator.onLine) {
                 statoProfilo.classList.add('is-saved');
-                statoProfilo.textContent = 'Salvato sul dispositivo';
+                if (sessione && sessione.offline) {
+                    accodaSincronizzazione({ azione: 'salva_profilo', qualifica, barca, base });
+                    statoProfilo.textContent = 'Salvato sul dispositivo; sincronizzazione in attesa';
+                } else {
+                    statoProfilo.textContent = 'Salvato sul dispositivo';
+                }
                 return;
             }
 
