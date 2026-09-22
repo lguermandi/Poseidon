@@ -25,6 +25,11 @@
 
     const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
+    function mostraBannerTracking(visibile) {
+        const banner = document.getElementById('tracking-banner');
+        if (banner) banner.classList.toggle('visible', visibile);
+    }
+
     async function richiediPermessiTracking() {
         if (!isNativo) return;
 
@@ -371,6 +376,7 @@
         }
 
         inNavigazione = true;
+        mostraBannerTracking(true);
         const tracciaSalvata = riprendi ? leggiTracciaAttiva() : null;
         gpsTrack = tracciaSalvata?.punti.map(punto => L.latLng(punto.lat, punto.lon)) || [];
         puntiTracciato = tracciaSalvata?.punti || [];
@@ -464,6 +470,7 @@
 
     window.fermaGPS = function () {
         inNavigazione = false;
+        mostraBannerTracking(false);
         clearInterval(timerInterval);
         timerInterval = null;
 

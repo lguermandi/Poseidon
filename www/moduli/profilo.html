@@ -376,11 +376,14 @@
 
         function leggiSessione() {
             try {
-                const sessione = JSON.parse(sessionStorage.getItem(SESSIONE_KEY) || 'null');
+                const sessioneSalvata = localStorage.getItem(SESSIONE_KEY) || sessionStorage.getItem(SESSIONE_KEY);
+                const sessione = JSON.parse(sessioneSalvata || 'null');
                 if (!sessione || !sessione.token || !sessione.email || sessione.scadenza <= Date.now()) {
                     cancellaSessione();
                     return null;
                 }
+                localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
+                sessionStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
                 return sessione;
             } catch (e) {
                 cancellaSessione();
@@ -389,10 +392,13 @@
         }
 
         function salvaSessione(email, token, scadenza) {
-            sessionStorage.setItem(SESSIONE_KEY, JSON.stringify({ email, token, scadenza }));
+            const sessione = JSON.stringify({ email, token, scadenza });
+            localStorage.setItem(SESSIONE_KEY, sessione);
+            sessionStorage.setItem(SESSIONE_KEY, sessione);
         }
 
         function cancellaSessione() {
+            localStorage.removeItem(SESSIONE_KEY);
             sessionStorage.removeItem(SESSIONE_KEY);
             localStorage.removeItem('plancia_utente');
         }

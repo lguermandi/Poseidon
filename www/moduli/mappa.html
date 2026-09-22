@@ -1,77 +1,219 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
+
     <!-- Librerie CSS e JS di Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: #0f172a; }
-        
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+
         /* Mappa 100% schermo */
-        #mappa-container { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        #mappa-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
 
         /* Head-Up Display (HUD) */
         .hud-top {
-            position: absolute; top: 15px; left: 15px; right: 15px;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
             background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px); border: 1px solid #334155;
-            border-radius: 12px; padding: 12px 15px;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
-        .hud-box { text-align: center; flex: 1; border-right: 1px solid #334155; }
-        .hud-box:last-child { border-right: none; }
-        .hud-label { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; }
-        .hud-value { font-size: 1.8rem; font-weight: bold; font-family: monospace; }
-        
-        #distanza-totale { color: #38bdf8; } /* Azzurro */
-        #velocita-attuale { color: #4ade80; } /* Verde */
-        #tempo-trascorso { color: #facc15; } /* Giallo */
+
+        .hud-box {
+            text-align: center;
+            flex: 1;
+            border-right: 1px solid #334155;
+        }
+
+        .hud-box:last-child {
+            border-right: none;
+        }
+
+        .hud-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .hud-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        #distanza-totale {
+            color: #38bdf8;
+        }
+
+        /* Azzurro */
+        #velocita-attuale {
+            color: #4ade80;
+        }
+
+        /* Verde */
+        #tempo-trascorso {
+            color: #facc15;
+        }
+
+        /* Giallo */
 
         /* Floating Action Buttons (FAB) */
         .fab-container {
-            position: absolute; bottom: 30px; right: 20px;
-            display: flex; flex-direction: column; gap: 15px; z-index: 1000;
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
         }
+
         .fab-btn {
-            width: 60px; height: 60px; border-radius: 50%; border: none;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 2rem; color: white; cursor: pointer;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
             transition: transform 0.1s;
         }
-        .fab-btn:active { transform: scale(0.92); }
-        #btn-center { background: #3b82f6; }
-        #btn-naviga { background: #22c55e; }
-        #btn-naviga.active { background: #ef4444; } /* Rosso quando registra */
+
+        .fab-btn:active {
+            transform: scale(0.92);
+        }
+
+        #btn-center {
+            background: #3b82f6;
+        }
+
+        #btn-naviga {
+            background: #22c55e;
+        }
+
+        #btn-naviga.active {
+            background: #ef4444;
+        }
+
+        /* Rosso quando registra */
 
         /* Bottom Sheet (Pannello Salvataggio) */
         .bottom-sheet {
-            position: absolute; bottom: -100%; left: 0; right: 0;
-            background: #1e293b; padding: 25px 20px;
-            border-radius: 20px 20px 0 0; z-index: 2000;
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            padding: 25px 20px;
+            border-radius: 20px 20px 0 0;
+            z-index: 2000;
             transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        .bottom-sheet.open { bottom: 0; }
-        .sheet-title { color: white; font-size: 1.3rem; font-weight: bold; text-align: center; }
-        .sheet-buttons { display: flex; gap: 15px; margin-top: 10px; }
+
+        .bottom-sheet.open {
+            bottom: 0;
+        }
+
+        .sheet-title {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .sheet-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
         .sheet-btn {
-            flex: 1; padding: 15px; border-radius: 12px; border: none;
-            font-size: 1rem; font-weight: bold; color: white; cursor: pointer;
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tracking-banner {
+            position: fixed;
+            top: 92px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1500;
+            width: min(420px, calc(100% - 30px));
+            box-sizing: border-box;
+            padding: 11px 15px;
+            border: 1px solid #4ade80;
+            border-radius: 12px;
+            background: rgba(6, 78, 59, 0.95);
+            color: #f0fdf4;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+            font-size: 0.9rem;
+        }
+
+        .tracking-banner.visible {
+            display: flex;
+        }
+
+        .tracking-dot {
+            width: 10px;
+            height: 10px;
+            flex: 0 0 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 0 5px rgba(74, 222, 128, 0.18);
         }
     </style>
 </head>
+
 <body>
 
     <!-- Mappa -->
@@ -91,6 +233,11 @@
             <div class="hud-label">Tempo</div>
             <div class="hud-value" id="tempo-trascorso">00:00</div>
         </div>
+    </div>
+
+    <div class="tracking-banner" id="tracking-banner" role="status" aria-live="polite">
+        <span class="tracking-dot"></span>
+        <span>Registrazione percorso attiva: posizione in aggiornamento</span>
     </div>
 
     <!-- Controlli Mappa (FAB) -->
@@ -113,13 +260,15 @@
         </div>
         <div class="sheet-buttons">
             <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
-            <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in Profilo</button>
+            <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in
+                Profilo</button>
         </div>
     </div>
 
-<!-- Pannello Pianificazione Tattica (Si apre tracciando a mano) -->
+    <!-- Pannello Pianificazione Tattica (Si apre tracciando a mano) -->
     <!-- Cruscotto di Stampa (Visibile solo sul PDF) -->
-    <div id="print-header" style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 15px 30px; border-radius: 12px; z-index: 3000; color: white; text-align: center; border: 2px solid #38bdf8; min-width: 60%; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+    <div id="print-header"
+        style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 15px 30px; border-radius: 12px; z-index: 3000; color: white; text-align: center; border: 2px solid #38bdf8; min-width: 60%; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
         <h2 style="margin: 0 0 15px 0; color: #38bdf8; text-transform: uppercase;">Piano di Navigazione</h2>
         <div style="display: flex; justify-content: space-between; font-size: 1.2rem;">
             <div><span style="color: #94a3b8;">Distanza:</span> <b id="print-dist"></b></div>
@@ -128,11 +277,11 @@
         </div>
     </div>
 
-    
+
     <!-- Pannello Pianificazione Tattica -->
     <div class="bottom-sheet" id="sheet-pianificazione">
         <div class="sheet-title">Pianificazione Tattica 🧭</div>
-        
+
         <div style="display: flex; justify-content: space-between; margin: 10px 0; padding: 0 10px;">
             <div style="text-align: center;">
                 <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Distanza Tot.</div>
@@ -144,40 +293,49 @@
             </div>
         </div>
 
-        <div style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px;">
+        <div
+            style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h4 style="margin: 0; color: #f8fafc; font-size: 0.95rem;">Dati Meteomarini</h4>
-                <button class="btn-action" id="btn-meteo-rotta" data-stato="base" style="background: #3b82f6; padding: 6px 12px; font-size: 0.8rem;" onclick="scaricaMeteoRotta()">📡 Dati Reali API</button>
+                <button class="btn-action" id="btn-meteo-rotta" data-stato="base"
+                    style="background: #3b82f6; padding: 6px 12px; font-size: 0.8rem;" onclick="scaricaMeteoRotta()">📡
+                    Dati Reali API</button>
             </div>
-            
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
                     <label style="color: #94a3b8; font-size: 0.75rem;">Vento (Nodi)</label>
-                    <input type="number" id="plan-vento-vel" value="8" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                    <input type="number" id="plan-vento-vel" value="8" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
                 </div>
                 <div>
                     <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Vento (°)</label>
-                    <input type="number" id="plan-vento-dir" value="45" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                    <input type="number" id="plan-vento-dir" value="45" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
                 </div>
                 <div>
                     <label style="color: #94a3b8; font-size: 0.75rem;">Corrente (Nodi)</label>
-                    <input type="number" id="plan-corr-vel" value="0.5" step="0.1" oninput="calcolaTempoStimato()" class="tattica-input">
+                    <input type="number" id="plan-corr-vel" value="0.5" step="0.1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
                 </div>
                 <div>
                     <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Corr. (°)</label>
-                    <input type="number" id="plan-corr-dir" value="90" step="1" oninput="calcolaTempoStimato()" class="tattica-input">
+                    <input type="number" id="plan-corr-dir" value="90" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
                 </div>
             </div>
 
             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
                 <label style="color: #94a3b8; font-size: 0.8rem;">Velocità Propulsiva stimata a vela (Nodi)</label>
-                <input type="number" id="plan-velocita" value="5.0" step="0.5" oninput="calcolaTempoStimato()" class="tattica-input" style="color: #4ade80; margin-top: 5px;">
+                <input type="number" id="plan-velocita" value="5.0" step="0.5" oninput="calcolaTempoStimato()"
+                    class="tattica-input" style="color: #4ade80; margin-top: 5px;">
             </div>
         </div>
 
         <div class="sheet-buttons">
             <button class="sheet-btn" style="background: #ef4444;" onclick="cancellaRotta()">🗑️ Pulisci</button>
-            <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano" onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
+            <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano"
+                onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
         </div>
     </div>
 
@@ -189,19 +347,19 @@
         function interruttoreNavigazione() {
             const btn = document.getElementById('btn-naviga');
             const icona = document.getElementById('icona-naviga');
-            
+
             if (!uiInNavigazione) {
                 // START NAV
                 uiInNavigazione = true;
                 btn.classList.add('active');
                 icona.className = "ph ph-stop";
-                window.avviaGPS(); 
+                window.avviaGPS();
             } else {
                 // STOP NAV (Mostra pannello)
                 uiInNavigazione = false;
                 btn.classList.remove('active');
                 icona.className = "ph ph-play";
-                window.fermaGPS(); 
+                window.fermaGPS();
                 document.getElementById('sheet-salvataggio').classList.add('open');
             }
         }
@@ -217,7 +375,7 @@
         }
 
         // Funzione per spegnere l'UI in caso di errore GPS
-        window.resetUINavigazione = function() {
+        window.resetUINavigazione = function () {
             uiInNavigazione = false;
             document.getElementById('btn-naviga').classList.remove('active');
             document.getElementById('icona-naviga').className = "ph ph-play";
@@ -225,4 +383,5 @@
 
     </script>
 </body>
+
 </html>

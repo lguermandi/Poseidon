@@ -1,56 +1,178 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Palestra di Carteggio</title>
     <link rel="stylesheet" href="../css/style.css">
-    
+
     <!-- Librerie Leaflet e PDF -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        body, html { margin: 0; padding: 0; background: #0f172a; overflow-x: hidden; }
-        
-        .header-carteggio { padding: 15px; text-align: center; background: #1e293b; border-bottom: 1px solid #334155; }
-        .header-carteggio h1 { margin: 0; color: #f8fafc; font-size: 1.5rem; }
-        .header-carteggio p { margin: 5px 0 0 0; color: #94a3b8; font-size: 0.9rem; }
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+            overflow-x: hidden;
+        }
+
+        .header-carteggio {
+            padding: 15px;
+            text-align: center;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header-carteggio h1 {
+            margin: 0;
+            color: #f8fafc;
+            font-size: 1.5rem;
+        }
+
+        .header-carteggio p {
+            margin: 5px 0 0 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
 
         /* Mappa e Controlli */
-        .mappa-wrapper { position: relative; width: 100%; height: 60vh; border-bottom: 2px solid #38bdf8; }
-        #mappa-5d { width: 100%; height: 100%; background: #e5e5e5; }
-        
+        .mappa-wrapper {
+            position: relative;
+            width: 100%;
+            height: 60vh;
+            border-bottom: 2px solid #38bdf8;
+        }
+
+        .mappa-wrapper.pdf-sheet {
+            width: 1122px;
+            height: 793px;
+            border: 0;
+        }
+
+        #mappa-5d {
+            width: 100%;
+            height: 100%;
+            background: #e5e5e5;
+        }
+
         .print-panel {
-            position: absolute; top: 10px; right: 10px; background: rgba(30, 41, 59, 0.9);
-            padding: 15px; border-radius: 8px; border: 1px solid #334155;
-            z-index: 1000; width: 260px; backdrop-filter: blur(5px);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            z-index: 1000;
+            width: 260px;
+            backdrop-filter: blur(5px);
         }
 
         .zona-selector {
-            width: 100%; padding: 8px; margin-bottom: 15px; background: #0f172a;
-            color: white; border: 1px solid #475569; border-radius: 4px;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background: #0f172a;
+            color: white;
+            border: 1px solid #475569;
+            border-radius: 4px;
         }
 
         /* Mirino Stampa A4 */
         .mirino-stampa {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.05);
-            z-index: 500; pointer-events: none; display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+            z-index: 500;
+            pointer-events: none;
+            display: none;
             box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.7);
         }
-        .mirino-orizzontale { width: 842px; height: 595px; } /* Proporzioni A4 a 96dpi */
-        .mirino-verticale { width: 595px; height: 842px; }
+
+        .mirino-orizzontale {
+            width: 842px;
+            height: 595px;
+        }
+
+        /* Proporzioni A4 a 96dpi */
+        .mirino-verticale {
+            width: 595px;
+            height: 842px;
+        }
+
+        .scala-carta {
+            --scala-bar-width: 56px;
+            position: absolute;
+            left: 18px;
+            bottom: 18px;
+            z-index: 700;
+            padding: 6px 9px;
+            background: rgba(255, 255, 255, .92);
+            color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font: 700 12px/1.2 Arial, sans-serif;
+        }
+
+        .scala-carta::before {
+            content: '';
+            display: block;
+            width: var(--scala-bar-width);
+            height: 7px;
+            margin-bottom: 4px;
+            border: 2px solid #0f172a;
+            background: repeating-linear-gradient(90deg, #0f172a 0 50%, #fff 50% 100%);
+        }
+
+        @media print {
+            .mappa-wrapper.pdf-sheet {
+                width: 1122px !important;
+                height: 793px !important;
+            }
+        }
 
         /* Sezione Esercizi (Dal tuo codice originale) */
-        .sezione-esercizi { padding: 20px; max-width: 800px; margin: 0 auto; }
-        .problema-box { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #38bdf8; }
-        .soluzione-box { background: #064e3b; padding: 20px; border-radius: 8px; border-left: 4px solid #4ade80; }
-        .dato { font-size: 1.2rem; font-weight: bold; color: #f8fafc; }
-        .hidden { display: none !important; }
+        .sezione-esercizi {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .problema-box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .soluzione-box {
+            background: #064e3b;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4ade80;
+        }
+
+        .dato {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f8fafc;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="header-carteggio">
@@ -62,6 +184,7 @@
     <div class="mappa-wrapper" id="area-stampa-pdf">
         <div id="mappa-5d"></div>
         <div id="mirino" class="mirino-stampa"></div>
+        <div id="scala-carta" class="scala-carta">Scala nautica</div>
 
         <div class="print-panel">
             <select class="zona-selector" id="selettore-zona" onchange="cambiaZona()">
@@ -70,13 +193,16 @@
                 <option value="napoli">Golfo di Napoli e Capri</option>
                 <option value="maddalena">Sardegna (La Maddalena)</option>
             </select>
-            
+
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                <button class="btn-action" style="flex: 1; background: #3b82f6; padding: 8px; font-size: 0.85rem;" onclick="preparaStampa('orizzontale')">A4 Orizzontale</button>
-                <button class="btn-action" style="flex: 1; background: #6366f1; padding: 8px; font-size: 0.85rem;" onclick="preparaStampa('verticale')">A4 Verticale</button>
+                <button class="btn-action" style="flex: 1; background: #3b82f6; padding: 8px; font-size: 0.85rem;"
+                    onclick="preparaStampa('orizzontale')">A4 Orizzontale</button>
+                <button class="btn-action" style="flex: 1; background: #6366f1; padding: 8px; font-size: 0.85rem;"
+                    onclick="preparaStampa('verticale')">A4 Verticale</button>
             </div>
-            
-            <button class="btn-action hidden" id="btn-export" style="background: #10b981; width: 100%; font-size: 1rem;" onclick="generaPDF()">
+
+            <button class="btn-action hidden" id="btn-export" style="background: #10b981; width: 100%; font-size: 1rem;"
+                onclick="generaPDF()">
                 📥 Genera PDF Stampabile
             </button>
         </div>
@@ -95,7 +221,8 @@
             <h3 style="color: #38bdf8;">Testo dell'Esercizio</h3>
             <div class="problema-box" id="testo-problema"></div>
             <div style="text-align: center; margin-top: 15px;">
-                <button class="btn-action" style="background: #f59e0b;" onclick="mostraSoluzione()">Mostra Soluzione Corretta</button>
+                <button class="btn-action" style="background: #f59e0b;" onclick="mostraSoluzione()">Mostra Soluzione
+                    Corretta</button>
             </div>
         </div>
 
@@ -114,7 +241,9 @@
             maddalena: [41.250, 9.400]
         };
 
-        const map = L.map('mappa-5d', { center: zoneCoordinate.elba, zoom: 10, zoomControl: false });
+        let formatoAttuale = '';
+
+        const map = L.map('mappa-5d', { center: zoneCoordinate.elba, zoom: 10, zoomControl: false, scrollWheelZoom: false, inertia: false });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
         L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
 
@@ -125,7 +254,7 @@
             grigliaLayer.clearLayers();
             const bounds = map.getBounds();
             const zoom = map.getZoom();
-            
+
             // Definisce l'intervallo della griglia in gradi a seconda dello zoom
             let step = 0.1; // default per zoom ravvicinato (circa 6 miglia)
             if (zoom < 9) step = 0.5;
@@ -143,19 +272,34 @@
                 L.polyline([[-90, lon], [90, lon]], { color: '#64748b', weight: 1, dashArray: '4,4', opacity: 0.6 }).addTo(grigliaLayer);
             }
         }
-        
+
         map.on('moveend', disegnaGriglia);
         disegnaGriglia(); // Prima esecuzione
+
+        function aggiornaScalaCarta() {
+            const bounds = map.getBounds();
+            const larghezzaMetri = map.distance(bounds.getSouthWest(), L.latLng(bounds.getSouth(), bounds.getEast()));
+            const larghezzaFoglioMetri = formatoAttuale === 'verticale' ? 0.210 : 0.297;
+            const scala = Math.max(1, Math.round(larghezzaMetri / larghezzaFoglioMetri / 100) * 100);
+            const metriPerPixel = larghezzaMetri / map.getSize().x;
+            const barraPixel = Math.max(24, Math.min(180, Math.round(5556 / metriPerPixel)));
+            const scalaElemento = document.getElementById('scala-carta');
+            scalaElemento.style.setProperty('--scala-bar-width', `${barraPixel}px`);
+            scalaElemento.textContent = `Scala 1:${scala.toLocaleString('it-IT')} - 3 NM`;
+        }
+
+        map.on('moveend zoomend', aggiornaScalaCarta);
+        aggiornaScalaCarta();
 
         function cambiaZona() {
             const zonaSelezionata = document.getElementById('selettore-zona').value;
             map.setView(zoneCoordinate[zonaSelezionata], 10);
+            map.stop();
             document.getElementById('mirino').style.display = 'none';
             document.getElementById('btn-export').classList.add('hidden');
         }
 
         // --- LOGICA ESPORTAZIONE PDF ---
-        let formatoAttuale = '';
 
         function preparaStampa(formato) {
             formatoAttuale = formato;
@@ -163,33 +307,48 @@
             mirino.className = `mirino-stampa mirino-${formato}`;
             mirino.style.display = 'block';
             document.getElementById('btn-export').classList.remove('hidden');
-            
+            const areaStampa = document.getElementById('area-stampa-pdf');
+            areaStampa.classList.toggle('pdf-sheet', formato === 'orizzontale');
+            if (formato === 'verticale') {
+                areaStampa.style.width = '793px';
+                areaStampa.style.height = '1122px';
+            } else {
+                areaStampa.style.width = '1122px';
+                areaStampa.style.height = '793px';
+            }
+
             // Centra visivamente la mappa dentro il mirino
             map.invalidateSize();
+            aggiornaScalaCarta();
         }
 
         function generaPDF() {
             const btnExport = document.getElementById('btn-export');
             btnExport.innerHTML = "⏳ Generazione in corso...";
-            
+
             // Nasconde UI non necessaria
             document.querySelector('.print-panel').style.display = 'none';
             document.getElementById('mirino').style.boxShadow = 'none';
             document.getElementById('mirino').style.border = 'none';
 
-            const element = document.getElementById('area-stampa-pdf'); 
+            const element = document.getElementById('area-stampa-pdf');
             const opt = {
-                margin:       0,
-                filename:     `Carta_Nautica_Esercitazione_${new Date().getTime()}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: formatoAttuale === 'orizzontale' ? 'landscape' : 'portrait' }
+                margin: 0,
+                filename: `Carta_Nautica_Esercitazione_${new Date().getTime()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 1, useCORS: true, scrollX: 0, scrollY: 0, width: formatoAttuale === 'orizzontale' ? 1122 : 793, height: formatoAttuale === 'orizzontale' ? 793 : 1122 },
+                pagebreak: { mode: ['avoid-all'] },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: formatoAttuale === 'orizzontale' ? 'landscape' : 'portrait' }
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
                 document.querySelector('.print-panel').style.display = 'block';
                 document.getElementById('mirino').style.boxShadow = '0 0 0 9999px rgba(15, 23, 42, 0.7)';
                 document.getElementById('mirino').style.border = '2px solid #ef4444';
+                const areaStampa = document.getElementById('area-stampa-pdf');
+                areaStampa.classList.remove('pdf-sheet');
+                areaStampa.style.removeProperty('width');
+                areaStampa.style.removeProperty('height');
                 btnExport.innerHTML = "📥 Genera PDF Stampabile";
             });
         }
@@ -198,21 +357,21 @@
         let pv, vp, lsc, dc, vc;
 
         function generaProblema() {
-            pv = Math.floor(Math.random() * 360); 
-            vp = (Math.random() * (8 - 4) + 4).toFixed(1); 
-            lsc = Math.floor(Math.random() * 31) - 15; 
-            dc = Math.floor(Math.random() * 360); 
-            vc = (Math.random() * (3 - 0.5) + 0.5).toFixed(1); 
+            pv = Math.floor(Math.random() * 360);
+            vp = (Math.random() * (8 - 4) + 4).toFixed(1);
+            lsc = Math.floor(Math.random() * 31) - 15;
+            dc = Math.floor(Math.random() * 360);
+            vc = (Math.random() * (3 - 0.5) + 0.5).toFixed(1);
 
             const testo = `
                 Una imbarcazione naviga con Prora Vera (Pv) = <span class="dato">${pv}°</span> 
                 e Velocità Propulsiva (Vp) = <span class="dato">${vp} kn</span>.<br><br>
-                In zona soffia un vento che determina un angolo di Scarroccio (Lsc) = <span class="dato">${lsc > 0 ? '+'+lsc : lsc}°</span>.<br>
+                In zona soffia un vento che determina un angolo di Scarroccio (Lsc) = <span class="dato">${lsc > 0 ? '+' + lsc : lsc}°</span>.<br>
                 Inoltre, è nota una corrente con Direzione (Dc) = <span class="dato">${dc}°</span> 
                 e Velocità (Vc) = <span class="dato">${vc} kn</span>.<br><br>
                 <strong>Calcolare la Rotta Vera (Rv) e la Velocità Effettiva (Veff).</strong>
             `;
-            
+
             document.getElementById('testo-problema').innerHTML = testo;
             document.getElementById('pannello-problema').classList.remove('hidden');
             document.getElementById('pannello-soluzione').classList.add('hidden');
@@ -240,8 +399,8 @@
             if (rv < 0) rv += 360;
             rv = Math.round(rv);
 
-            const parziale = `1) Rvs = Pv + (±Lsc) = ${pv}° + (${lsc > 0 ? '+'+lsc : lsc}°) = ${rvs}°`;
-            
+            const parziale = `1) Rvs = Pv + (±Lsc) = ${pv}° + (${lsc > 0 ? '+' + lsc : lsc}°) = ${rvs}°`;
+
             const soluzione = `
                 <div style="margin-bottom: 15px; color: #a7f3d0;">${parziale}</div>
                 • Rotta Vera (Rv): <span class="dato">${rv}°</span><br>
@@ -253,4 +412,5 @@
         }
     </script>
 </body>
+
 </html>

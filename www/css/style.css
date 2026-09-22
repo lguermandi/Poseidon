@@ -4,13 +4,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
 :root {
-    --bg-profondo: #0f172a;       /* Sfondo principale scuro */
-    --pannello: #1e293b;          /* Sfondo dei box e schede */
-    --accento-ciano: #0ea5e9;     /* Colore interazioni primarie */
-    --accento-verde: #10b981;     /* Colore di avvio/successo */
-    --accento-rosso: #ef4444;     /* Colore stop/errore */
-    --testo-primario: #f8fafc;    /* Testo bianco ad alto contrasto */
-    --testo-secondario: #94a3b8;  /* Testo grigio per etichette */
+    --bg-profondo: #0f172a;
+    /* Sfondo principale scuro */
+    --pannello: #1e293b;
+    /* Sfondo dei box e schede */
+    --accento-ciano: #0ea5e9;
+    /* Colore interazioni primarie */
+    --accento-verde: #10b981;
+    /* Colore di avvio/successo */
+    --accento-rosso: #ef4444;
+    /* Colore stop/errore */
+    --testo-primario: #f8fafc;
+    /* Testo bianco ad alto contrasto */
+    --testo-secondario: #94a3b8;
+    /* Testo grigio per etichette */
     --bordo-soft: rgba(255, 255, 255, 0.1);
 }
 
@@ -32,8 +39,9 @@ body {
 ========================================= */
 
 /* Reset assoluto per annullare regole residue */
-nav, #menu-Navigazione {
-    display: flex !important; 
+nav,
+#menu-Navigazione {
+    display: flex !important;
     grid-template-columns: none !important;
 }
 
@@ -44,7 +52,8 @@ nav, #menu-Navigazione {
     z-index: 1000 !important;
     border-bottom: 1px solid var(--bordo-soft) !important;
     display: flex !important;
-    flex-direction: column !important; /* Impila il Logo sopra e il Menu sotto */
+    flex-direction: column !important;
+    /* Impila il Logo sopra e il Menu sotto */
     align-items: center !important;
     justify-content: center !important;
     gap: 15px !important;
@@ -68,8 +77,10 @@ nav, #menu-Navigazione {
     left: 0 !important;
     width: 100% !important;
     background-color: var(--bg-profondo) !important;
-    flex-direction: row !important; /* Forza i tasti in orizzontale */
-    flex-wrap: nowrap !important; /* Impedisce assolutamente di andare a capo */
+    flex-direction: row !important;
+    /* Forza i tasti in orizzontale */
+    flex-wrap: nowrap !important;
+    /* Impedisce assolutamente di andare a capo */
     justify-content: space-around !important;
     padding: 10px 0 !important;
     margin: 0 !important;
@@ -82,11 +93,12 @@ nav, #menu-Navigazione {
     border: none !important;
     color: var(--testo-secondario) !important;
     display: flex !important;
-    flex-direction: column !important; /* Icona sopra, testo sotto */
+    flex-direction: column !important;
+    /* Icona sopra, testo sotto */
     align-items: center !important;
     font-size: 0.75rem !important;
     font-weight: 600 !important;
-    flex: 1 !important; 
+    flex: 1 !important;
     padding: 5px !important;
     white-space: nowrap !important;
     box-shadow: none !important;
@@ -107,34 +119,40 @@ nav, #menu-Navigazione {
     #menu-Navigazione {
         position: static !important;
         width: 100% !important;
-        max-width: 700px !important; /* Limita la larghezza massima per eleganza */
+        max-width: 700px !important;
+        /* Limita la larghezza massima per eleganza */
         background-color: transparent !important;
         box-shadow: none !important;
         border-top: none !important;
         padding: 0 !important;
-        flex-direction: row !important; /* Mantiene i bottoni affiancati */
+        flex-direction: row !important;
+        /* Mantiene i bottoni affiancati */
         justify-content: space-between !important;
-        gap: 1.5vw !important; /* Spaziatura elastica tra i bottoni */
+        gap: 1.5vw !important;
+        /* Spaziatura elastica tra i bottoni */
     }
 
     .nav-btn {
-        flex-direction: row !important; /* Icona a sinistra del testo */
+        flex-direction: row !important;
+        /* Icona a sinistra del testo */
         justify-content: center !important;
         gap: 0.5vw !important;
-        
+
         /* MODULABILITÀ: Il font e il padding si ridimensionano con la finestra (minimo, ottimale, massimo) */
-        font-size: clamp(0.85rem, 1.2vw, 1.05rem) !important; 
+        font-size: clamp(0.85rem, 1.2vw, 1.05rem) !important;
         padding: clamp(10px, 1.2vw, 14px) clamp(12px, 2vw, 25px) !important;
-        
+
         background: var(--bg-profondo) !important;
         border: 1px solid var(--bordo-soft) !important;
         border-radius: 12px !important;
-        flex: 1 !important; /* I bottoni si stringono e allargano identici tra loro */
+        flex: 1 !important;
+        /* I bottoni si stringono e allargano identici tra loro */
     }
 
     .nav-btn i {
         margin-bottom: 0 !important;
-        font-size: clamp(1.1rem, 1.5vw, 1.4rem) !important; /* Anche l'icona è elastica */
+        font-size: clamp(1.1rem, 1.5vw, 1.4rem) !important;
+        /* Anche l'icona è elastica */
     }
 
     .nav-btn.active {
@@ -182,7 +200,9 @@ iframe {
 /* =========================================
    4. STILI COMUNI INTERNI AI MODULI
 ========================================= */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     color: var(--testo-primario);
     margin-top: 0;
     font-weight: 700;
@@ -197,11 +217,13 @@ h1, h2, h3 {
     font-weight: 400;
 }
 
-.panel, .profile-card, .dashboard-rotta {
+.panel,
+.profile-card,
+.dashboard-rotta {
     background: var(--pannello);
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--bordo-soft);
     box-sizing: border-box;
     margin-bottom: 20px;
@@ -215,11 +237,21 @@ h1, h2, h3 {
     gap: 8px;
     border: none;
     border-radius: 12px;
-    color: white;
+    background: var(--accento-ciano);
+    color: #ffffff;
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s, filter 0.2s;
+}
+
+.btn-action:hover:not(:disabled) {
+    filter: brightness(1.12);
+}
+
+.btn-action:disabled {
+    cursor: wait;
+    opacity: 0.65;
 }
 
 .btn-action:active {
@@ -260,7 +292,8 @@ input:focus {
 }
 
 /* Risultati e Statistiche */
-.results, .info-box {
+.results,
+.info-box {
     margin-top: 20px;
     padding: 16px;
     background: var(--bg-profondo);
@@ -347,8 +380,8 @@ input:focus {
     font-weight: 600;
     transition: border-color 0.2s;
 }
+
 .tattica-input:focus {
     border-color: #38bdf8;
     outline: none;
 }
-
