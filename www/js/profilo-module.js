@@ -1,79 +1,127 @@
-document.addEventListener("DOMContentLoaded", () => {
-    caricaStatisticheERotte();
+/**
+ * PROFILO.JS - Logica di gestione utente e dati
+ */
+
+const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec"; // Sostituisci con il tuo URL
+const SESSIONE_KEY = 'poseidon_sessione';
+
+document.addEventListener('DOMContentLoaded', () => {
+    inizializzaApp();
 });
 
-function caricaStatisticheERotte() {
-    let rotte;
-    try {
-        rotte = JSON.parse(localStorage.getItem("navigazione_rotte") || "[]");
-        if (!Array.isArray(rotte)) rotte = [];
-    } catch {
-        rotte = [];
+async function inizializzaApp() {
+    const sessione = leggiSessione();
+
+    if (sessione) {
+        mostraStatoUtente(sessione.email);
+        aggiornaStatisticheLocali();
     }
-    
-    // Calcola totali
-    let migliaTotali = 0;
-    rotte.forEach(r => {
-        migliaTotali += parseFloat(r.distanza || 0);
-    });
 
-    document.getElementById("totale-miglia").innerText = migliaTotali.toFixed(2);
-    document.getElementById("totale-uscite").innerText = rotte.length;
+    // Gestione stato online/offline
+    window.addEventListener('online', () => aggiornaInterfacciaSync(true));
+    window.addEventListener('offline', () => aggiornaInterfacciaSync(false));
+    aggiornaInterfacciaSync(navigator.onLine);
+}
 
-    // Popola la lista
-    const container = document.getElementById("lista-rotte");
+// --- GESTIONE SESSIONE ---
+function leggiSessione() {
+    try {
+        return JSON.parse(localStorage.getItem(SESSIONE_KEY));
+    } catch { return null; }
+}
+
+function mostraStatoUtente(email) {
+    document.getElementById('form-container').style.display = 'none';
+    document.getElementById('profilo-container').style.display = 'block';
+    document.getElementById('testo-email-utente').textContent = email;
+    caricaListaRotte();
+}
+
+// --- STATISTICHE E ROTTE ---
+function aggiornaStatisticheLocali() {
+    const logbook = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
+    const quiz = JSON.parse(localStorage.getItem('nave_storico_quiz') || "[]");
+
+    document.getElementById('stat-logbook').textContent = logbook.length;
+    document.getElementById('stat-quiz').textContent = quiz.length;
+
+    // Carica campi profilo
+    document.getElementById('profilo-qualifica').value = localStorage.getItem('profilo_qualifica') || "";
+    document.getElementById('profilo-barca').value = localStorage.getItem('profilo_barca') || "";
+}
+
+function caricaListaRotte() {
+    const container = document.getElementById('lista-tracce');
+    const rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
+
     if (rotte.length === 0) {
-        container.innerHTML = '<p style="font-size: 0.85rem; color: #94a3b8; text-align: center;">Nessuna rotta salvata.</p>';
+        container.innerHTML = '<p style="color: var(--testo-secondario); text-align:center;">Nessuna rotta in archivio.</p>';
         return;
     }
 
-    container.innerHTML = rotte.slice(-5).reverse().map(r => `
-        <div class="route-item">
-            <div>
-                <strong style="color: #38bdf8;">${r.data || 'Uscita'}</strong><br>
-                <small style="color: #94a3b8;">${r.durata || '00:00'} min</small>
-            </div>
-            <div style="font-weight: bold; color: #22c55e;">
-                ${parseFloat(r.distanza || 0).toFixed(2)} Nm
+    container.innerHTML = rotte.reverse().map(rotta => `
+        <div class="track-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 700; color: var(--testo-primario);">${rotta.nome || 'Navigazione'}</div>
+                    <div style="font-size: 0.75rem; color: var(--testo-secondario);">${rotta.data}</div>
+                </div>
+                <button class="btn-action" style="width: auto; padding: 5px 10px; font-size: 0.7rem;" onclick="scaricaGPX(${rotta.id})">
+                    GPX
+                </button>
             </div>
         </div>
     `).join('');
 }
 
-// Esporta i dati in un file scaricabile sul dispositivo
-function esportaDati() {
-    const dati = localStorage.getItem("navigazione_rotte") || "[]";
-    const blob = new Blob([dati], { type: "application/json" });
+// --- FUNZIONI DI EXPORT ---
+function scaricaGPX(id) {
+    const rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
+    const rotta = rotte.find(r => r.id === id);
+    if (!rotta) return;
+
+    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Poseidon">
+    <trk><name>${rotta.nome}</name><trkseg>`;
+
+    rotta.punti.forEach(p => {
+        gpx += `\n<trkpt lat="${p.lat}" lon="${p.lon}"><time>${p.time}</time></trkpt>`;
+    });
+
+    gpx += `\n</trkseg></trk></gpx>`;
+
+    const blob = new Blob([gpx], { type: 'application/gpx+xml' });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `navigazione_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
+    a.download = `${rotta.nome.replace(/\s+/g, '_')}.gpx`;
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 }
 
-// Importa i dati selezionati dall'utente
-function importaDati(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function esportaBackupCompleto() {
+    const chiavi = ['profilo_qualifica', 'profilo_barca', 'navigazione_rotte', 'nave_logbook', 'nave_storico_quiz'];
+    const backup = {};
+    chiavi.forEach(k => backup[k] = localStorage.getItem(k));
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            if (Array.isArray(parsed)) {
-                localStorage.setItem("navigazione_rotte", JSON.stringify(parsed));
-                alert("Dati ripristinati con successo!");
-                caricaStatisticheERotte();
-            } else {
-                alert("Formato file non valido.");
-            }
-        } catch (err) {
-            alert("Errore durante la lettura del file.");
-        }
-    };
-    reader.readAsText(file);
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Poseidon_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+}
+
+// --- FEEDBACK UI ---
+function aggiornaInterfacciaSync(isOnline) {
+    const el = document.getElementById('sync-status');
+    if (!el) return;
+    el.innerHTML = isOnline
+        ? '<span style="color:var(--accento-verde)">●</span> Cloud Sincronizzato'
+        : '<span style="color:var(--accento-rosso)">●</span> Modalità Offline';
+}
+
+function esciAccount() {
+    if (confirm("Vuoi disconnettere l'account? I dati locali rimarranno sul dispositivo.")) {
+        localStorage.removeItem(SESSIONE_KEY);
+        location.reload();
+    }
 }

@@ -4,6 +4,7 @@
         zoomControl: false,
         preferCanvas: true
     }).setView([44.006, 12.657], 13);
+    setTimeout(() => { map.invalidateSize(); }, 200);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
     L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
@@ -402,9 +403,21 @@
 
         mantieniSchermoAcceso();
 
-        startTime = tracciaSalvata?.iniziataUTC ? Date.parse(tracciaSalvata.iniziataUTC) : Date.now();
+        // --- FIX TIMER INFINITO ---
+        const oraAttuale = Date.now();
+        const tempoInizioSalvato = tracciaSalvata?.iniziataUTC ? Date.parse(tracciaSalvata.iniziataUTC) : oraAttuale;
+
+        // Se la traccia è più vecchia di 1 ora e NON stiamo premendo "riprendi", resetta il timer a ora
+        if (!riprendi && (oraAttuale - tempoInizioSalvato > 3600000)) {
+            startTime = oraAttuale;
+        } else {
+            startTime = tempoInizioSalvato;
+        }
+        // ---------------------------
+
         timerInterval = setInterval(aggiornaTimer, 1000);
         aggiornaTimer();
+
         if (!tracciaSalvata) {
             localStorage.setItem('navigazione_traccia_attiva', JSON.stringify({
                 iniziataUTC: new Date(startTime).toISOString(),
@@ -457,13 +470,28 @@
             await bgWatcherPromise;
         } else {
             if (navigator.geolocation) {
+                // Otteniamo la prima posizione per centrare la mappa e avviare il calcolo
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         elaboraCoordinate(pos.coords.latitude, pos.coords.longitude, pos.coords.speed, pos.timestamp);
+
+                        // Avvio monitoraggio continuo (WATCH)
                         watchId = navigator.geolocation.watchPosition(
-                            (posizione) => elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp),
+                            (posizione) => {
+                                // --- FILTRO PRECISIONE ---
+                                // Se la precisione è peggiore di 60 metri, scartiamo il punto per non sporcare le miglia
+                                if (posizione.coords.accuracy > 60) {
+                                    console.warn("GPS Impreciso scartato:", posizione.coords.accuracy, "metri");
+                                    return;
+                                }
+                                elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp);
+                            },
                             (err) => allarmeGPS(err),
-                            { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+                            {
+                                enableHighAccuracy: true,
+                                maximumAge: 0,    // OBBLIGATORIO: Forza il sensore a leggere dati freschi (no cache)
+                                timeout: 10000    // Ridotto a 10s per reagire prima in caso di perdita segnale
+                            }
                         );
                     },
                     (err) => allarmeGPS(err),
@@ -510,23 +538,48 @@
     };
 
     function elaboraCoordinate(lat, lng, speedMs, timestamp) {
-        const speedKnots = (speedMs || 0) * 1.94384;
-        const time = timestamp ? new Date(timestamp).toISOString() : new Date().toISOString();
-        ultimoPuntoRilevato = L.latLng(lat, lng);
+        const adesso = timestamp ? timestamp : Date.now();
+        const nuovoPunto = L.latLng(lat, lng);
 
+        let velocitaCalcolata = 0;
+
+        // Calcoliamo la distanza solo se abbiamo già almeno un punto precedente
         if (gpsTrack.length > 0) {
             const ultimoPunto = gpsTrack[gpsTrack.length - 1];
-            liveDistanzaNm += (ultimoPunto.distanceTo(ultimoPuntoRilevato) / 1852);
+            const distanzaMetri = ultimoPunto.distanceTo(nuovoPunto);
+
+            // Filtro Rumore: ignora spostamenti inferiori a 2 metri (jitter del GPS)
+            if (distanzaMetri > 2) {
+                const distanzaNm = distanzaMetri / 1852;
+                liveDistanzaNm += distanzaNm;
+
+                // Calcolo manuale velocità se speedMs è null o instabile
+                // Aggiunto controllo di sicurezza: puntiTracciato deve avere elementi
+                if ((speedMs === null || speedMs === undefined || speedMs === 0) && puntiTracciato.length > 0) {
+                    const tempoSecondi = (adesso - new Date(puntiTracciato[puntiTracciato.length - 1].time).getTime()) / 1000;
+                    if (tempoSecondi > 0) {
+                        velocitaCalcolata = (distanzaMetri / tempoSecondi) * 1.94384; // da m/s a nodi
+                    }
+                } else {
+                    velocitaCalcolata = (speedMs || 0) * 1.94384;
+                }
+            } else {
+                velocitaCalcolata = 0; // Siamo praticamente fermi
+            }
         }
 
-        gpsTrack.push(ultimoPuntoRilevato);
-        liveRotta.addLatLng(ultimoPuntoRilevato);
-        map.panTo(ultimoPuntoRilevato);
+        // Aggiorna variabili globali e UI
+        ultimoPuntoRilevato = nuovoPunto;
+        gpsTrack.push(nuovoPunto);
+        liveRotta.addLatLng(nuovoPunto);
 
-        puntiTracciato.push({ lat: lat, lon: lng, vel: speedKnots, time: time });
+        const timeISO = new Date(adesso).toISOString();
+        puntiTracciato.push({ lat: lat, lon: lng, vel: velocitaCalcolata, time: timeISO });
+
+        // Salvataggio persistente per ripresa in caso di crash
         localStorage.setItem('navigazione_traccia_attiva', JSON.stringify({
             iniziataUTC: puntiTracciato[0].time,
-            aggiornataUTC: time,
+            aggiornataUTC: timeISO,
             proprietario: proprietarioCorrente(),
             imbarcazione: localStorage.getItem('profilo_barca') || 'Non specificata',
             punti: puntiTracciato,
@@ -534,9 +587,13 @@
             stato: 'in_corso'
         }));
 
-        document.getElementById("distanza-totale").innerText = liveDistanzaNm.toFixed(2);
-        const nodoVelocita = document.getElementById("velocita-attuale");
-        if (nodoVelocita) nodoVelocita.innerText = speedKnots.toFixed(1);
+        // Aggiornamento display
+        requestAnimationFrame(() => {
+            const distEl = document.getElementById("distanza-totale");
+            const velEl = document.getElementById("velocita-attuale");
+            if (distEl) distEl.innerText = liveDistanzaNm.toFixed(2);
+            if (velEl) velEl.innerText = velocitaCalcolata.toFixed(1);
+        });
     }
 
     function aggiornaTimer() {
@@ -654,3 +711,12 @@
         URL.revokeObjectURL(url);
     };
 })();
+
+
+// Aggiungi questo in fondo a mappa-module.js
+window.onload = () => {
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 200);
+};
+

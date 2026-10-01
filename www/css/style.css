@@ -1,24 +1,31 @@
 /* =========================================
-   1. IMPOSTAZIONI GLOBALI E VARIABILI
+   1. VARIABILI E RESET PROFESSIONALE
 ========================================= */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
+    /* Palette Nautica High-Tech */
     --bg-profondo: #0f172a;
-    /* Sfondo principale scuro */
     --pannello: #1e293b;
-    /* Sfondo dei box e schede */
+    --pannello-hover: #2d3a4f;
     --accento-ciano: #0ea5e9;
-    /* Colore interazioni primarie */
     --accento-verde: #10b981;
-    /* Colore di avvio/successo */
     --accento-rosso: #ef4444;
-    /* Colore stop/errore */
+
+    /* Tipografia e Contrasto (Ottimizzati per visibilità esterna) */
     --testo-primario: #f8fafc;
-    /* Testo bianco ad alto contrasto */
-    --testo-secondario: #94a3b8;
-    /* Testo grigio per etichette */
-    --bordo-soft: rgba(255, 255, 255, 0.1);
+    --testo-secondario: #cbd5e1;
+    /* Schiarito per accessibilità */
+    --bordo-soft: rgba(255, 255, 255, 0.12);
+
+    /* Dimensioni UI */
+    --nav-height-mobile: 75px;
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -29,368 +36,320 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    height: 100vh;
+    height: 100dvh;
+    /* Altezza dinamica per mobile */
     overflow: hidden;
+    /* Blocca lo scroll del body, lo gestiamo nei moduli */
     -webkit-font-smoothing: antialiased;
 }
 
 /* =========================================
-   2. HEADER E MENU (LAYOUT FLUIDO E DEFINITIVO)
+   2. HEADER E LOGO
 ========================================= */
-
-/* Reset assoluto per annullare regole residue */
-nav,
-#menu-Navigazione {
-    display: flex !important;
-    grid-template-columns: none !important;
-}
-
 #main-header {
-    background-color: var(--pannello) !important;
-    text-align: center !important;
-    padding: 15px !important;
-    z-index: 1000 !important;
-    border-bottom: 1px solid var(--bordo-soft) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    /* Impila il Logo sopra e il Menu sotto */
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 15px !important;
-}
-
-.logo {
-    font-size: 1.8rem !important;
-    font-weight: 800 !important;
-    color: var(--accento-ciano) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    margin: 0 !important;
-}
-
-/* --- MOBILE: BARRA INFERIORE FISSA --- */
-#menu-Navigazione {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    background-color: var(--bg-profondo) !important;
-    flex-direction: row !important;
-    /* Forza i tasti in orizzontale */
-    flex-wrap: nowrap !important;
-    /* Impedisce assolutamente di andare a capo */
-    justify-content: space-around !important;
-    padding: 10px 0 !important;
-    margin: 0 !important;
-    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.6) !important;
-    border-top: 1px solid var(--bordo-soft) !important;
-}
-
-.nav-btn {
-    background: transparent !important;
-    border: none !important;
-    color: var(--testo-secondario) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    /* Icona sopra, testo sotto */
-    align-items: center !important;
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
-    flex: 1 !important;
-    padding: 5px !important;
-    white-space: nowrap !important;
-    box-shadow: none !important;
-    cursor: pointer !important;
-}
-
-.nav-btn i {
-    font-size: 1.6rem !important;
-    margin-bottom: 4px !important;
-}
-
-/* --- DESKTOP: MENU ORIZZONTALE SOTTO IL LOGO (Modulabile) --- */
-@media (min-width: 768px) {
-    #main-header {
-        padding: 20px 30px !important;
-    }
-
-    #menu-Navigazione {
-        position: static !important;
-        width: 100% !important;
-        max-width: 700px !important;
-        /* Limita la larghezza massima per eleganza */
-        background-color: transparent !important;
-        box-shadow: none !important;
-        border-top: none !important;
-        padding: 0 !important;
-        flex-direction: row !important;
-        /* Mantiene i bottoni affiancati */
-        justify-content: space-between !important;
-        gap: 1.5vw !important;
-        /* Spaziatura elastica tra i bottoni */
-    }
-
-    .nav-btn {
-        flex-direction: row !important;
-        /* Icona a sinistra del testo */
-        justify-content: center !important;
-        gap: 0.5vw !important;
-
-        /* MODULABILITÀ: Il font e il padding si ridimensionano con la finestra (minimo, ottimale, massimo) */
-        font-size: clamp(0.85rem, 1.2vw, 1.05rem) !important;
-        padding: clamp(10px, 1.2vw, 14px) clamp(12px, 2vw, 25px) !important;
-
-        background: var(--bg-profondo) !important;
-        border: 1px solid var(--bordo-soft) !important;
-        border-radius: 12px !important;
-        flex: 1 !important;
-        /* I bottoni si stringono e allargano identici tra loro */
-    }
-
-    .nav-btn i {
-        margin-bottom: 0 !important;
-        font-size: clamp(1.1rem, 1.5vw, 1.4rem) !important;
-        /* Anche l'icona è elastica */
-    }
-
-    .nav-btn.active {
-        background: var(--pannello) !important;
-        border-color: var(--accento-ciano) !important;
-        box-shadow: 0 0 10px rgba(14, 165, 233, 0.2) !important;
-    }
-}
-
-
-/* =========================================
-   3. STRUTTURA SCHERMATE E IFRAME
-========================================= */
-main {
-    width: 100%;
-    max-width: 1180px;
-    height: 0;
-    min-height: 0;
-    padding: 20px;
+    background-color: var(--pannello);
+    padding: 12px 20px;
+    z-index: 1000;
+    border-bottom: 1px solid var(--bordo-soft);
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-sizing: border-box;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accento-ciano);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.5px;
+}
+
+/* =========================================
+   3. NAVIGAZIONE (UX OTTIMIZZATA)
+========================================= */
+#menu-Navigazione {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(30, 41, 59, 0.95);
+    /* Effetto vetro */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 8px 10px calc(8px + var(--safe-area-bottom));
+    justify-content: space-around;
+    border-top: 1px solid var(--bordo-soft);
+    z-index: 2000;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--testo-secondario);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 4px;
+}
+
+.nav-btn i {
+    font-size: 1.4rem;
+}
+
+.nav-btn span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.nav-btn.active {
+    color: var(--accento-ciano);
+}
+
+/* Desktop Header Layout */
+@media (min-width: 768px) {
+    #main-header {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 15px 40px;
+    }
+
+    #menu-Navigazione {
+        position: static;
+        width: auto;
+        background: transparent;
+        border: none;
+        padding: 0;
+        gap: 10px;
+        backdrop-filter: none;
+    }
+
+    .nav-btn {
+        flex-direction: row;
+        padding: 10px 18px;
+        border-radius: 10px;
+        background: var(--bg-profondo);
+        border: 1px solid var(--bordo-soft);
+        gap: 8px;
+    }
+
+    .nav-btn.active {
+        background: var(--accento-ciano);
+        color: white;
+        border-color: var(--accento-ciano);
+    }
+
+    .nav-btn span {
+        font-size: 0.85rem;
+    }
+}
+
+/* =========================================
+   4. CONTENITORE PRINCIPALE E IFRAME
+========================================= */
+main {
+    flex-grow: 1;
+    width: 100%;
+    /* Rimuovi o commenta max-width e padding qui se vuoi la mappa totale */
+    /* max-width: 1300px; */
+    /* padding: 15px; */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Aggiungi questa regola specifica per l'iframe */
+#app-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    /* Rimuove i bordi arrotondati che stritolano la mappa */
     flex-grow: 1;
 }
 
 iframe {
     width: 100%;
     height: 100%;
-    min-height: 0;
-    flex: 1 1 auto;
     border: none;
     border-radius: 16px;
-    background: transparent;
-    overflow: auto;
+    background-color: transparent;
 }
 
 @media (max-width: 767px) {
-    body {
-        height: 100dvh;
-    }
-
     main {
-        padding: 12px 12px 88px;
-    }
-
-    iframe {
-        border-radius: 12px;
+        padding: 10px;
     }
 }
 
 /* =========================================
-   4. STILI COMUNI INTERNI AI MODULI
+   5. COMPONENTI INTERNI (MODULARI)
 ========================================= */
-h1,
-h2,
-h3 {
-    color: var(--testo-primario);
-    margin-top: 0;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+
+/* Scrollbar Personalizzata */
+.modulo-scrollabile::-webkit-scrollbar {
+    width: 6px;
 }
 
-.subtitle {
-    font-size: 0.9rem;
-    color: var(--testo-secondario);
-    margin-bottom: 25px;
-    text-align: left;
-    font-weight: 400;
+.modulo-scrollabile::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.panel,
-.profile-card,
-.dashboard-rotta {
+.modulo-scrollabile::-webkit-scrollbar-thumb {
+    background: var(--bordo-soft);
+    border-radius: 10px;
+}
+
+/* Pannelli */
+.panel {
     background: var(--pannello);
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--bordo-soft);
-    box-sizing: border-box;
-    margin-bottom: 20px;
-    width: 100%;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
+/* Pulsanti Azione */
 .btn-action {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+    /* Touch friendly */
     border: none;
     border-radius: 12px;
     background: var(--accento-ciano);
-    color: #ffffff;
+    color: white;
     font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s, filter 0.2s;
-}
-
-.btn-action:hover:not(:disabled) {
-    filter: brightness(1.12);
-}
-
-.btn-action:disabled {
-    cursor: wait;
-    opacity: 0.65;
+    transition: transform 0.1s, filter 0.2s;
 }
 
 .btn-action:active {
-    transform: scale(0.95);
-    filter: brightness(1.2);
+    transform: scale(0.97);
 }
 
-/* Form e Input */
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Input Form */
 .input-group {
-    margin-bottom: 16px;
-    display: flex;
-    flex-direction: column;
+    margin-bottom: 18px;
 }
 
 label {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
+    display: block;
+    font-size: 0.75rem;
     color: var(--testo-secondario);
-    font-weight: 600;
+    margin-bottom: 8px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 input {
+    width: 100%;
     padding: 14px;
-    border-radius: 10px;
-    border: 1px solid var(--bordo-soft);
     background: var(--bg-profondo);
-    color: var(--testo-primario);
+    border: 1px solid var(--bordo-soft);
+    border-radius: 12px;
+    color: white;
     font-size: 1rem;
-    font-family: 'Inter', sans-serif;
-    outline: none;
     transition: border-color 0.2s;
 }
 
 input:focus {
+    outline: none;
     border-color: var(--accento-ciano);
 }
 
-/* Risultati e Statistiche */
-.results,
-.info-box {
-    margin-top: 20px;
-    padding: 16px;
-    background: var(--bg-profondo);
-    border-radius: 12px;
-    border-left: 4px solid var(--accento-ciano);
-    line-height: 1.6;
-}
-
-.dato-rotta {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--testo-primario);
-}
-
 /* =========================================
-   5. MODULO QUIZ
+   6. MODULO QUIZ (EVITA TRONCAMENTI)
 ========================================= */
-.categoria {
-    display: inline-block;
-    background: var(--bg-profondo);
-    color: var(--accento-ciano);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
 .domanda {
-    font-size: 1.2rem;
-    margin-bottom: 25px;
-    line-height: 1.5;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 20px;
 }
 
 .opzioni {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: 12px;
 }
 
 .btn-opzione {
     background: var(--bg-profondo);
+    border: 2px solid var(--bordo-soft);
+    /* Bordo più spesso per feedback chiaro */
     color: var(--testo-primario);
-    border: 1px solid var(--bordo-soft);
     padding: 16px;
-    border-radius: 12px;
+    border-radius: 14px;
     text-align: left;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-weight: 600;
+    word-wrap: break-word;
+    /* Evita che il testo lungo esca dal bottone */
+    min-height: 60px;
 }
 
-.btn-opzione:hover:not(:disabled) {
-    border-color: var(--testo-secondario);
+.btn-opzione:hover {
+    background: var(--pannello-hover);
 }
 
-.corretta {
-    background: rgba(16, 185, 129, 0.2) !important;
+.btn-opzione.corretta {
+    background: rgba(16, 185, 129, 0.15) !important;
     border-color: var(--accento-verde) !important;
     color: var(--accento-verde);
 }
 
-.errata {
-    background: rgba(239, 68, 68, 0.2) !important;
+.btn-opzione.errata {
+    background: rgba(239, 68, 68, 0.15) !important;
     border-color: var(--accento-rosso) !important;
     color: var(--accento-rosso);
 }
 
-/* --- INPUT TATTICI MAPPA --- */
-.tattica-input {
-    width: 100%;
-    padding: 10px;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    box-sizing: border-box;
-    text-align: center;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: border-color 0.2s;
+/* =========================================
+   7. UTILITY PER MODULI
+========================================= */
+.modulo-bloccato {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-.tattica-input:focus {
-    border-color: #38bdf8;
-    outline: none;
+.modulo-scrollabile {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 5px;
+    /* Spazio per scrollbar */
+}
+
+/* Per mappe e strumenti a tutto schermo */
+.full-screen-tool {
+    flex: 1;
+    background: var(--pannello);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--bordo-soft);
 }

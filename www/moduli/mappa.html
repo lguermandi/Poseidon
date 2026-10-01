@@ -3,74 +3,71 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="../css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mappa</title>
 
-    <!-- Librerie CSS e JS di Leaflet -->
+    <!-- Librerie esterne -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background-color: #0f172a;
+        /* RESET TOTALE E ISOLAMENTO */
+        * {
+            box-sizing: border-box;
         }
 
-        /* Mappa 100% schermo */
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+            background-color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            /* Rimuoviamo il flexbox del file globale */
+            display: block !important;
+        }
+
+        /* Il contenitore della mappa DEVE essere fisso e totale */
         #mappa-container {
             position: absolute;
             top: 0;
             left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
         }
 
-        /* Head-Up Display (HUD) */
+        /* HUD: DIST, SOG, TEMPO (Forzati in Orizzontale) */
         .hud-top {
             position: absolute;
             top: 15px;
-            left: 15px;
-            right: 15px;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(8px);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            left: 10px;
+            right: 10px;
             z-index: 1000;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        @media (max-width: 600px) {
-            .hud-top {
-                top: 10px;
-                left: 10px;
-                right: 10px;
-                padding: 9px 6px;
-            }
-
-            .hud-value {
-                font-size: clamp(1.15rem, 6vw, 1.55rem);
-            }
-
-            .hud-label {
-                font-size: 0.65rem;
-            }
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 12px;
+            /* REGOLE PER ORIZZONTALE */
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            align-items: center !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
 
         .hud-box {
-            text-align: center;
             flex: 1;
-            border-right: 1px solid #334155;
+            text-align: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .hud-box:last-child {
@@ -78,63 +75,57 @@
         }
 
         .hud-label {
+            display: block;
             color: #94a3b8;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            font-weight: bold;
+            font-weight: 800;
+            letter-spacing: 0.5px;
             margin-bottom: 2px;
         }
 
         .hud-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            font-family: monospace;
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Inter', monospace;
         }
 
         #distanza-totale {
             color: #38bdf8;
         }
 
-        /* Azzurro */
         #velocita-attuale {
             color: #4ade80;
         }
 
-        /* Verde */
         #tempo-trascorso {
             color: #facc15;
         }
 
-        /* Giallo */
-
-        /* Floating Action Buttons (FAB) */
+        /* PULSANTI FLOTTANTI */
         .fab-container {
             position: absolute;
-            bottom: max(24px, env(safe-area-inset-bottom));
+            bottom: 30px;
             right: 20px;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 15px;
-            z-index: 1000;
         }
 
         .fab-btn {
-            width: 60px;
-            height: 60px;
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
             border: none;
+            color: white;
+            font-size: 1.8rem;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2rem;
-            color: white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
             cursor: pointer;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-            transition: transform 0.1s;
-        }
-
-        .fab-btn:active {
-            transform: scale(0.92);
         }
 
         #btn-center {
@@ -142,33 +133,27 @@
         }
 
         #btn-naviga {
-            background: #22c55e;
+            background: #10b981;
         }
 
         #btn-naviga.active {
             background: #ef4444;
         }
 
-        /* Rosso quando registra */
-
-        /* Bottom Sheet (Pannello Salvataggio) */
+        /* PANNELLO PIANIFICAZIONE (BOTTOM SHEET) */
         .bottom-sheet {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
             background: #1e293b;
-            padding: 25px 20px max(20px, env(safe-area-inset-bottom));
-            border-radius: 20px 20px 0 0;
+            padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+            border-radius: 24px 24px 0 0;
             z-index: 2000;
             transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            max-height: min(82dvh, 620px);
-            overflow-y: auto;
+            transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+            color: white;
         }
 
         .bottom-sheet.open {
@@ -176,206 +161,77 @@
         }
 
         .sheet-title {
-            color: white;
-            font-size: 1.3rem;
-            font-weight: bold;
+            font-size: 1.2rem;
+            font-weight: 800;
             text-align: center;
+            margin-bottom: 15px;
         }
 
-        .sheet-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .sheet-btn {
-            flex: 1;
-            min-width: 145px;
-            padding: 15px;
-            border-radius: 12px;
-            border: none;
-            font-size: 1rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-        }
-
-        @media (max-width: 600px) {
-            .sheet-buttons {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .sheet-btn {
-                width: 100%;
-                min-width: 0;
-            }
+        /* Utility per nascondere pianificazione all'avvio */
+        #sheet-pianificazione {
+            display: block;
         }
     </style>
 </head>
 
 <body>
 
+    <!-- IL CONTENITORE DELLA MAPPA -->
     <div id="mappa-container"></div>
 
+    <!-- HUD SUPERIORE -->
     <div class="hud-top">
         <div class="hud-box">
-            <div class="hud-label">Dist (Nm)</div>
-            <div class="hud-value" id="distanza-totale">0.00</div>
+            <span class="hud-label">Dist (Nm)</span>
+            <span class="hud-value" id="distanza-totale">0.00</span>
         </div>
         <div class="hud-box">
-            <div class="hud-label">SOG (Kn)</div>
-            <div class="hud-value" id="velocita-attuale">0.0</div>
+            <span class="hud-label">SOG (Kn)</span>
+            <span class="hud-value" id="velocita-attuale">0.0</span>
         </div>
         <div class="hud-box">
-            <div class="hud-label">Tempo</div>
-            <div class="hud-value" id="tempo-trascorso">00:00</div>
+            <span class="hud-label">Tempo</span>
+            <span class="hud-value" id="tempo-trascorso">00:00</span>
         </div>
     </div>
 
-    <!-- Controlli Mappa (FAB) -->
+    <!-- TASTI AZIONE -->
     <div class="fab-container">
-        <!-- Centra Posizione -->
         <button class="fab-btn" id="btn-center" onclick="centraMappa()">
             <i class="ph ph-crosshair"></i>
         </button>
-        <!-- Play / Stop GPS -->
         <button class="fab-btn" id="btn-naviga" onclick="interruttoreNavigazione()">
             <i class="ph ph-play" id="icona-naviga"></i>
         </button>
     </div>
 
-    <!-- Pannello di Chiusura -->
-    <div class="bottom-sheet" id="sheet-salvataggio">
-        <div class="sheet-title">Navigazione in Pausa ⚓</div>
-        <div style="color: #94a3b8; text-align: center; font-size: 0.95rem;">
-            Seleziona un'azione per chiudere l'itinerario.
-        </div>
-        <div class="sheet-buttons">
-            <button class="sheet-btn" style="background: #0ea5e9;" onclick="esportaGPX()">📤 Esporta GPX</button>
-            <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
-            <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in
-                Profilo</button>
-        </div>
-    </div>
-
-    <!-- Pannello Pianificazione Tattica (Si apre tracciando a mano) -->
-    <!-- Cruscotto di Stampa (Visibile solo sul PDF) -->
-    <div id="print-header"
-        style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 15px 30px; border-radius: 12px; z-index: 3000; color: white; text-align: center; border: 2px solid #38bdf8; min-width: 60%; box-shadow: 0 10px 20px rgba(0,0,0,0.5);">
-        <h2 style="margin: 0 0 15px 0; color: #38bdf8; text-transform: uppercase;">Piano di Navigazione</h2>
-        <div style="display: flex; justify-content: space-between; font-size: 1.2rem;">
-            <div><span style="color: #94a3b8;">Distanza:</span> <b id="print-dist"></b></div>
-            <div><span style="color: #94a3b8;">Velocità Stimata:</span> <b id="print-vel"></b></div>
-            <div><span style="color: #94a3b8;">Tempo Arrivo (ETA):</span> <b id="print-tempo"></b></div>
-        </div>
-    </div>
-
-
-    <!-- Pannello Pianificazione Tattica -->
-    <div class="bottom-sheet" id="sheet-pianificazione">
-        <div class="sheet-title">Pianificazione Tattica 🧭</div>
-
-        <div style="display: flex; justify-content: space-between; margin: 10px 0; padding: 0 10px;">
-            <div style="text-align: center;">
-                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Distanza Tot.</div>
-                <div style="font-size: 1.4rem; font-weight: bold; color: #38bdf8;" id="plan-distanza">0.00 Nm</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Tempo (ETA)</div>
-                <div style="font-size: 1.4rem; font-weight: bold; color: #facc15;" id="plan-tempo">00h 00m</div>
-            </div>
-        </div>
-
-        <div
-            style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h4 style="margin: 0; color: #f8fafc; font-size: 0.95rem;">Dati Meteomarini</h4>
-                <button class="btn-action" id="btn-meteo-rotta" data-stato="base"
-                    style="background: #3b82f6; padding: 6px 12px; font-size: 0.8rem;" onclick="scaricaMeteoRotta()">📡
-                    Dati Reali API</button>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                    <label style="color: #94a3b8; font-size: 0.75rem;">Vento (Nodi)</label>
-                    <input type="number" id="plan-vento-vel" value="8" step="1" oninput="calcolaTempoStimato()"
-                        class="tattica-input">
-                </div>
-                <div>
-                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Vento (°)</label>
-                    <input type="number" id="plan-vento-dir" value="45" step="1" oninput="calcolaTempoStimato()"
-                        class="tattica-input">
-                </div>
-                <div>
-                    <label style="color: #94a3b8; font-size: 0.75rem;">Corrente (Nodi)</label>
-                    <input type="number" id="plan-corr-vel" value="0.5" step="0.1" oninput="calcolaTempoStimato()"
-                        class="tattica-input">
-                </div>
-                <div>
-                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Corr. (°)</label>
-                    <input type="number" id="plan-corr-dir" value="90" step="1" oninput="calcolaTempoStimato()"
-                        class="tattica-input">
-                </div>
-            </div>
-
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
-                <label style="color: #94a3b8; font-size: 0.8rem;">Velocità Propulsiva stimata a vela (Nodi)</label>
-                <input type="number" id="plan-velocita" value="5.0" step="0.5" oninput="calcolaTempoStimato()"
-                    class="tattica-input" style="color: #4ade80; margin-top: 5px;">
-            </div>
-        </div>
-
-        <div class="sheet-buttons">
-            <button class="sheet-btn" style="background: #ef4444;" onclick="cancellaRotta()">🗑️ Pulisci</button>
-            <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano"
-                onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
-        </div>
-    </div>
-
+    <!-- CARICAMENTO JS ALLA FINE PER EVITARE "CONTAINER NOT FOUND" -->
     <script src="../js/mappa-module.js"></script>
-    <script>
-        // Logica grafica dei pulsanti
-        let uiInNavigazione = false;
 
+    <script>
+        // Funzione di emergenza per forzare il caricamento
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.map) {
+                    window.map.invalidateSize();
+                }
+            }, 500);
+        });
+
+        // Gestione UI (Copia incolla dalla tua versione precedente)
+        let uiInNavigazione = false;
         function interruttoreNavigazione() {
             const btn = document.getElementById('btn-naviga');
             const icona = document.getElementById('icona-naviga');
-
             if (!uiInNavigazione) {
-                // START NAV
-                uiInNavigazione = true;
-                btn.classList.add('active');
-                icona.className = "ph ph-stop";
-                window.avviaGPS();
+                uiInNavigazione = true; btn.classList.add('active');
+                icona.className = "ph ph-stop"; window.avviaGPS();
             } else {
-                // STOP NAV (Mostra pannello)
-                uiInNavigazione = false;
-                btn.classList.remove('active');
-                icona.className = "ph ph-play";
-                window.fermaGPS();
-                document.getElementById('sheet-salvataggio').classList.add('open');
+                uiInNavigazione = false; btn.classList.remove('active');
+                icona.className = "ph ph-play"; window.fermaGPS();
+                document.getElementById('sheet-salvataggio')?.classList.add('open');
             }
         }
-
-        function confermaSalvataggio() {
-            document.getElementById('sheet-salvataggio').classList.remove('open');
-            window.salvaRotta();
-        }
-
-        function scartaRotta() {
-            document.getElementById('sheet-salvataggio').classList.remove('open');
-            window.cancellaRotta();
-        }
-
-        // Funzione per spegnere l'UI in caso di errore GPS
-        window.resetUINavigazione = function () {
-            uiInNavigazione = false;
-            document.getElementById('btn-naviga').classList.remove('active');
-            document.getElementById('icona-naviga').className = "ph ph-play";
-        };
-
     </script>
 </body>
 
