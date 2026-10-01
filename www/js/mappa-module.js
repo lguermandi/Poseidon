@@ -353,9 +353,11 @@
         const tTras = document.getElementById('tempo-trascorso');
         if (tTras) tTras.textContent = '00:00';
 
-        document.getElementById('sheet-pianificazione').classList.remove('open');
-        document.getElementById('plan-distanza').textContent = "0.00 Nm";
-        document.getElementById('plan-tempo').textContent = "00h 00m";
+        document.getElementById('sheet-pianificazione')?.classList.remove('open');
+        const planDistanza = document.getElementById('plan-distanza');
+        const planTempo = document.getElementById('plan-tempo');
+        if (planDistanza) planDistanza.textContent = "0.00 Nm";
+        if (planTempo) planTempo.textContent = "00h 00m";
 
         // Ripristina l'interruttore Meteo allo stato base
         const btnMeteo = document.getElementById('btn-meteo-rotta');
@@ -444,24 +446,39 @@
 
         if (isNativo) {
             const backgroundGeolocation = window.Capacitor?.Plugins?.BackgroundGeolocation;
-            if (!backgroundGeolocation) {
-                allarmeGPS(new Error('Plugin BackgroundGeolocation non disponibile'));
-                return;
+            if (!backgroundGeolocation?.addWatcher) {
+                throw new Error('Plugin BackgroundGeolocation non registrato nell’app.');
             }
 
-            bgWatcherPromise = backgroundGeolocation.addWatcher({
+            const opzioniWatcher = {
                 backgroundTitle: "Poseidon Navigazione",
                 backgroundMessage: "Registrazione rotta in corso.",
                 requestPermissions: true,
                 stale: false,
                 distanceFilter: 2
-            }, function (location, error) {
+            };
+            const callbackWatcher = function (location, error) {
                 if (error) {
                     allarmeGPS(error);
                     return;
                 }
                 elaboraCoordinate(location.latitude, location.longitude, location.speed, location.time);
-            }).then(async id => {
+            };
+
+            const aggiungiWatcher = async (tentativo = 0) => {
+                try {
+                    return await backgroundGeolocation.addWatcher(opzioniWatcher, callbackWatcher);
+                } catch (errore) {
+                    const servizioInAvvio = /service not running/i.test(errore?.message || '');
+                    if (servizioInAvvio && tentativo < 4 && inNavigazione && sessionId === trackingSessionId) {
+                        await new Promise(resolve => setTimeout(resolve, 400));
+                        return aggiungiWatcher(tentativo + 1);
+                    }
+                    throw errore;
+                }
+            };
+
+            bgWatcherPromise = aggiungiWatcher().then(async id => {
                 if (!inNavigazione || sessionId !== trackingSessionId) {
                     await backgroundGeolocation.removeWatcher({ id });
                     return null;
@@ -470,13 +487,13 @@
                 return id;
             }).catch((errore) => {
                 if (!inNavigazione || sessionId !== trackingSessionId) return null;
-                if (errore?.code === 'NOT_AUTHORIZED' || /permission|service not running/i.test(errore?.message || '')) {
+                if (errore?.code === 'NOT_AUTHORIZED' || errore?.code === 1 || /permission denied/i.test(errore?.message || '')) {
                     allarmeGPS(errore);
                 } else {
                     console.error('Impossibile avviare il watcher GPS:', errore);
                     window.fermaGPS();
                     if (window.resetUINavigazione) window.resetUINavigazione();
-                    alert('Impossibile avviare il GPS. Controlla la posizione e riprova.');
+                    alert(`GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`);
                 }
                 return null;
             }).finally(() => {

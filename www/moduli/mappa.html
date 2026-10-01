@@ -220,7 +220,12 @@
         function interruttoreNavigazione() {
             if (!uiInNavigazione) {
                 window.impostaUINavigazione(true);
-                window.avviaGPS().catch(() => window.impostaUINavigazione(false));
+                window.avviaGPS().catch((errore) => {
+                    console.error('Avvio GPS non riuscito:', errore);
+                    window.fermaGPS();
+                    window.impostaUINavigazione(false);
+                    alert(`GPS non avviato: ${errore?.message || 'errore imprevisto'}`);
+                });
             } else {
                 window.impostaUINavigazione(false);
                 window.fermaGPS();
