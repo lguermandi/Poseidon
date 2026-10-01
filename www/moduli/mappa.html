@@ -209,29 +209,26 @@
     <script src="../js/mappa-module.js"></script>
 
     <script>
-        // Funzione di emergenza per forzare il caricamento
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (window.map) {
-                    window.map.invalidateSize();
-                }
-            }, 500);
-        });
-
-        // Gestione UI (Copia incolla dalla tua versione precedente)
         let uiInNavigazione = false;
+
+        window.impostaUINavigazione = function (attiva) {
+            uiInNavigazione = attiva;
+            document.getElementById('btn-naviga').classList.toggle('active', attiva);
+            document.getElementById('icona-naviga').className = attiva ? 'ph ph-stop' : 'ph ph-play';
+        };
+
         function interruttoreNavigazione() {
-            const btn = document.getElementById('btn-naviga');
-            const icona = document.getElementById('icona-naviga');
             if (!uiInNavigazione) {
-                uiInNavigazione = true; btn.classList.add('active');
-                icona.className = "ph ph-stop"; window.avviaGPS();
+                window.impostaUINavigazione(true);
+                window.avviaGPS().catch(() => window.impostaUINavigazione(false));
             } else {
-                uiInNavigazione = false; btn.classList.remove('active');
-                icona.className = "ph ph-play"; window.fermaGPS();
+                window.impostaUINavigazione(false);
+                window.fermaGPS();
                 document.getElementById('sheet-salvataggio')?.classList.add('open');
             }
         }
+
+        window.resetUINavigazione = () => window.impostaUINavigazione(false);
     </script>
 </body>
 

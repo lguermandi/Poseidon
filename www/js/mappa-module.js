@@ -432,10 +432,14 @@
         await richiediPermessiTracking();
 
         const allarmeGPS = (errore) => {
-            console.warn("Errore Sensore:", errore);
-            alert("⚠️ ATTENZIONE: GPS non disponibile o timeout. Verifica che la Posizione sia attiva e che il dispositivo abbia segnale. Tracciamento fermato.");
+            const codiceErrore = `${errore?.code || ''} ${errore?.message || ''}`;
+            const permessoNegato = errore?.code === 1 || /NOT_AUTHORIZED|permission denied|permesso negato/i.test(codiceErrore);
+            console.warn(permessoNegato ? 'Permesso GPS negato:' : 'GPS temporaneamente non disponibile:', errore);
+            if (!permessoNegato) return;
+
             window.fermaGPS();
             if (window.resetUINavigazione) window.resetUINavigazione();
+            alert('Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.');
         };
 
         if (isNativo) {
@@ -464,38 +468,33 @@
                 }
                 bgWatcherId = id;
                 return id;
-            }).catch(allarmeGPS).finally(() => {
+            }).catch((errore) => {
+                if (!inNavigazione || sessionId !== trackingSessionId) return null;
+                if (errore?.code === 'NOT_AUTHORIZED' || /permission|service not running/i.test(errore?.message || '')) {
+                    allarmeGPS(errore);
+                } else {
+                    console.error('Impossibile avviare il watcher GPS:', errore);
+                    window.fermaGPS();
+                    if (window.resetUINavigazione) window.resetUINavigazione();
+                    alert('Impossibile avviare il GPS. Controlla la posizione e riprova.');
+                }
+                return null;
+            }).finally(() => {
                 bgWatcherPromise = null;
             });
             await bgWatcherPromise;
         } else {
             if (navigator.geolocation) {
-                // Otteniamo la prima posizione per centrare la mappa e avviare il calcolo
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        elaboraCoordinate(pos.coords.latitude, pos.coords.longitude, pos.coords.speed, pos.timestamp);
-
-                        // Avvio monitoraggio continuo (WATCH)
-                        watchId = navigator.geolocation.watchPosition(
-                            (posizione) => {
-                                // --- FILTRO PRECISIONE ---
-                                // Se la precisione è peggiore di 60 metri, scartiamo il punto per non sporcare le miglia
-                                if (posizione.coords.accuracy > 60) {
-                                    console.warn("GPS Impreciso scartato:", posizione.coords.accuracy, "metri");
-                                    return;
-                                }
-                                elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp);
-                            },
-                            (err) => allarmeGPS(err),
-                            {
-                                enableHighAccuracy: true,
-                                maximumAge: 0,    // OBBLIGATORIO: Forza il sensore a leggere dati freschi (no cache)
-                                timeout: 10000    // Ridotto a 10s per reagire prima in caso di perdita segnale
-                            }
-                        );
+                watchId = navigator.geolocation.watchPosition(
+                    (posizione) => {
+                        if (posizione.coords.accuracy > 60) {
+                            console.warn('GPS impreciso scartato:', posizione.coords.accuracy, 'metri');
+                            return;
+                        }
+                        elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp);
                     },
-                    (err) => allarmeGPS(err),
-                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                    (errore) => allarmeGPS(errore),
+                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 60000 }
                 );
             } else {
                 allarmeGPS(new Error("Sensore GPS non supportato dal dispositivo."));
@@ -508,7 +507,9 @@
         if (!traccia || !isNativo) return;
 
         setTimeout(() => {
-            window.avviaGPS(true).catch((errore) => {
+            window.avviaGPS(true).then(() => {
+                if (inNavigazione && window.impostaUINavigazione) window.impostaUINavigazione(true);
+            }).catch((errore) => {
                 console.error('Impossibile riprendere il tracking:', errore);
             });
         }, 250);
@@ -572,6 +573,7 @@
         ultimoPuntoRilevato = nuovoPunto;
         gpsTrack.push(nuovoPunto);
         liveRotta.addLatLng(nuovoPunto);
+        map.panTo(nuovoPunto, { animate: false });
 
         const timeISO = new Date(adesso).toISOString();
         puntiTracciato.push({ lat: lat, lon: lng, vel: velocitaCalcolata, time: timeISO });
@@ -605,21 +607,25 @@
 
     // --- 3. WAKE LOCK (Scudo Antisospensione) ---
     async function mantieniSchermoAcceso() {
-        if ('wakeLock' in navigator) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Schermo bloccato: navigazione continua assicurata.');
-
-                document.addEventListener('visibilitychange', async () => {
-                    if (wakeLock !== null && document.visibilityState === 'visible') {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                    }
-                });
-            } catch (err) {
-                console.error('Impossibile bloccare lo schermo:', err);
-            }
+        if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+        if (wakeLock && !wakeLock.released) return;
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+        } catch (errore) {
+            console.warn('Wake Lock non disponibile:', errore);
         }
     }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        setTimeout(() => {
+            map.invalidateSize();
+            if (inNavigazione) {
+                if (ultimoPuntoRilevato) map.panTo(ultimoPuntoRilevato, { animate: false });
+                mantieniSchermoAcceso();
+            }
+        }, 200);
+    });
 
     function rilasciaSchermo() {
         if (wakeLock !== null) {
@@ -711,12 +717,4 @@
         URL.revokeObjectURL(url);
     };
 })();
-
-
-// Aggiungi questo in fondo a mappa-module.js
-window.onload = () => {
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 200);
-};
 

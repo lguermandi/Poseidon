@@ -1,7 +1,7 @@
 (function () {
     async function richiediPermessiAvvio() {
         const nativo = window.Capacitor?.isNativePlatform?.();
-        if (!nativo || localStorage.getItem('poseidon_permessi_avvio_richiesti') === '1') return;
+        if (!nativo) return;
 
         try {
             const notifiche = window.Capacitor?.Plugins?.LocalNotifications;
@@ -14,9 +14,9 @@
         }
 
         try {
+            if (!navigator.geolocation) return;
             await new Promise((resolve) => {
-                if (!navigator.geolocation) return resolve();
-                navigator.geolocation.getCurrentPosition(resolve, resolve, {
+                navigator.geolocation.getCurrentPosition(() => resolve(), () => resolve(), {
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
@@ -24,8 +24,6 @@
             });
         } catch (errore) {
             console.warn('Permesso posizione non disponibile:', errore);
-        } finally {
-            localStorage.setItem('poseidon_permessi_avvio_richiesti', '1');
         }
     }
 

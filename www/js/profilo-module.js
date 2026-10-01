@@ -10,24 +10,151 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function inizializzaApp() {
-    const sessione = leggiSessione();
-
-    if (sessione) {
-        mostraStatoUtente(sessione.email);
-        aggiornaStatisticheLocali();
-    }
-
-    // Gestione stato online/offline
     window.addEventListener('online', () => aggiornaInterfacciaSync(true));
     window.addEventListener('offline', () => aggiornaInterfacciaSync(false));
     aggiornaInterfacciaSync(navigator.onLine);
+
+    const sessione = leggiSessione();
+    if (!sessione) return;
+
+    mostraStatoUtente(sessione.email);
+    aggiornaStatisticheLocali();
+
+    if (!navigator.onLine || sessione.offline) {
+        aggiornaInterfacciaSync(false);
+        return;
+    }
+
+    try {
+        const risultato = await richiestaAPI({
+            azione: 'verifica_sessione',
+            sessionToken: sessione.token
+        });
+        if (risultato.status === 'successo') {
+            const email = risultato.email || sessione.email;
+            sessione.email = email;
+            localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
+            mostraStatoUtente(email);
+        } else if (/session|token|autorizz/i.test(risultato.messaggio || risultato.errore || '')) {
+            cancellaSessione();
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('profilo-container').style.display = 'none';
+        }
+    } catch (errore) {
+        console.warn('Cloud non raggiungibile; mantengo la sessione locale.', errore);
+        aggiornaInterfacciaSync(false);
+    }
 }
 
 // --- GESTIONE SESSIONE ---
 function leggiSessione() {
     try {
-        return JSON.parse(localStorage.getItem(SESSIONE_KEY));
-    } catch { return null; }
+        const sessione = JSON.parse(localStorage.getItem(SESSIONE_KEY) || sessionStorage.getItem(SESSIONE_KEY) || 'null');
+        if (!sessione || !sessione.token || !sessione.email) {
+            cancellaSessione();
+            return null;
+        }
+        const scadenzaNumerica = Number(sessione.scadenza);
+        const scadenza = Number.isFinite(scadenzaNumerica) ? scadenzaNumerica : Date.parse(sessione.scadenza);
+        sessione.offline = Number.isFinite(scadenza) && scadenza <= Date.now();
+        localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
+        return sessione;
+    } catch {
+        cancellaSessione();
+        return null;
+    }
+}
+
+function salvaSessione(email, token, scadenza) {
+    const sessione = JSON.stringify({ email, token, scadenza });
+    localStorage.setItem(SESSIONE_KEY, sessione);
+    sessionStorage.setItem(SESSIONE_KEY, sessione);
+}
+
+function cancellaSessione() {
+    localStorage.removeItem(SESSIONE_KEY);
+    sessionStorage.removeItem(SESSIONE_KEY);
+}
+
+function richiestaAPI(payload) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    return fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        signal: controller.signal
+    }).then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+    }).finally(() => clearTimeout(timeout));
+}
+
+function ottieniPosizioneGPS() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            resolve({ lat: 'Non supportato', lng: 'Non supportato' });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+            () => resolve({ lat: 'Permesso negato', lng: 'Permesso negato' }),
+            { enableHighAccuracy: true, timeout: 6000 }
+        );
+    });
+}
+
+async function effettuaAccesso() {
+    const email = document.getElementById('auth-email').value.trim().toLowerCase();
+    const password = document.getElementById('auth-password').value;
+    const status = document.getElementById('auth-status');
+    status.style.color = '#fb923c';
+    status.textContent = 'Verifica credenziali...';
+
+    try {
+        const posizione = await ottieniPosizioneGPS();
+        const risultato = await richiestaAPI({
+            azione: 'login', email, password, lat: posizione.lat, lng: posizione.lng
+        });
+        if (risultato.status !== 'successo' || !risultato.token || !risultato.scadenza) {
+            status.style.color = '#ef4444';
+            status.textContent = risultato.messaggio || 'Credenziali non valide.';
+            return;
+        }
+        salvaSessione(email, risultato.token, risultato.scadenza);
+        mostraStatoUtente(email);
+        aggiornaStatisticheLocali();
+    } catch (errore) {
+        status.style.color = '#ef4444';
+        status.textContent = errore.name === 'AbortError'
+            ? 'Il server di autenticazione non risponde. Riprova tra poco.'
+            : 'Errore di rete durante il login.';
+    }
+}
+
+async function registrati() {
+    const email = document.getElementById('auth-email').value.trim().toLowerCase();
+    const password = document.getElementById('auth-password').value;
+    const status = document.getElementById('auth-status');
+    if (!email || !password) {
+        status.style.color = '#ef4444';
+        status.textContent = 'Inserisci email e password per la registrazione.';
+        return;
+    }
+    status.style.color = '#fb923c';
+    status.textContent = 'Registrazione sul cloud in corso...';
+    try {
+        const posizione = await ottieniPosizioneGPS();
+        const risultato = await richiestaAPI({
+            azione: 'registrazione', email, password, lat: posizione.lat, lng: posizione.lng
+        });
+        status.style.color = risultato.status === 'successo' ? '#4ade80' : '#ef4444';
+        status.textContent = risultato.messaggio || 'Registrazione completata.';
+    } catch (errore) {
+        status.style.color = '#ef4444';
+        status.textContent = errore.name === 'AbortError'
+            ? 'Il server di autenticazione non risponde. Riprova tra poco.'
+            : 'Errore di rete durante la registrazione.';
+    }
 }
 
 function mostraStatoUtente(email) {

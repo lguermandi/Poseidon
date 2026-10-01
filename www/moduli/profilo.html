@@ -9,9 +9,22 @@
         /* Estensioni specifiche per il Profilo (integrate con style.css) */
         .profile-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
             gap: 20px;
             width: 100%;
+        }
+
+        body.modulo-scrollabile>main {
+            width: 100%;
+            min-height: 100%;
+            height: auto;
+            overflow: visible;
+            padding: 18px 14px calc(28px + env(safe-area-inset-bottom));
+        }
+
+        html {
+            height: 100%;
+            overflow: hidden;
         }
 
         .stat-widget-container {
@@ -81,7 +94,8 @@
     </style>
 </head>
 
-<body class="modulo-scrollabile">
+<body class="modulo-scrollabile"
+    style="display: block; height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain;">
     <main>
         <header style="margin-bottom: 25px;">
             <h1 style="margin-bottom: 5px;">Area Personale</h1>
@@ -185,7 +199,7 @@
         </div>
     </main>
 
-    <script src="../js/profilo.js"></script>
+    <script src="../js/profilo-module.js"></script>
 </body>
 
 </html>
