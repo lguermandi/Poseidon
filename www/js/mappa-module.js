@@ -44,15 +44,57 @@
         }
     }
 
-    function leggiTracciaAttiva() {
+    function leggiTracciaAttiva(stati = ['in_corso']) {
         try {
             const traccia = JSON.parse(localStorage.getItem('navigazione_traccia_attiva') || 'null');
-            return traccia && traccia.stato === 'in_corso' && Array.isArray(traccia.punti) ? traccia : null;
+            return traccia && stati.includes(traccia.stato) && Array.isArray(traccia.punti) ? traccia : null;
         } catch (errore) {
             console.warn('Traccia attiva non leggibile.', errore);
             return null;
         }
     }
+
+    function impostaStatoTraccia(stato) {
+        const traccia = leggiTracciaAttiva(['in_corso', 'in_pausa']);
+        if (traccia) localStorage.setItem('navigazione_traccia_attiva', JSON.stringify({ ...traccia, stato }));
+    }
+
+    function chiudiTraccia() {
+        localStorage.removeItem('navigazione_traccia_attiva');
+        puntiTracciato = [];
+        gpsTrack = [];
+        liveDistanzaNm = 0;
+        ultimoPuntoRilevato = null;
+        liveRotta.setLatLngs([]);
+        window.cancellaRotta(true);
+    }
+
+    function fermaPerErrore(messaggio) {
+        window.fermaGPS();
+        if (window.resetUINavigazione) window.resetUINavigazione();
+        if (puntiTracciato.length > 0) document.getElementById('sheet-salvataggio')?.classList.add('open');
+        alert(messaggio);
+    }
+
+    function ripristinaTracciaInPausa(traccia) {
+        if (traccia.punti.length === 0) {
+            localStorage.removeItem('navigazione_traccia_attiva');
+            return;
+        }
+        puntiTracciato = traccia.punti;
+        gpsTrack = traccia.punti.map(punto => L.latLng(punto.lat, punto.lon));
+        liveDistanzaNm = Number(traccia.distanza) || 0;
+        ultimoPuntoRilevato = gpsTrack[gpsTrack.length - 1];
+        liveRotta.setLatLngs(gpsTrack);
+        map.setView(ultimoPuntoRilevato, 16);
+        document.getElementById('distanza-totale').textContent = liveDistanzaNm.toFixed(2);
+        const secondi = Math.max(0, Math.floor((Date.parse(traccia.aggiornataUTC || traccia.iniziataUTC) - Date.parse(traccia.iniziataUTC)) / 1000));
+        document.getElementById('tempo-trascorso').textContent = `${String(Math.floor(secondi / 60)).padStart(2, '0')}:${String(secondi % 60).padStart(2, '0')}`;
+        impostaStatoTraccia('in_pausa');
+        document.getElementById('sheet-salvataggio')?.classList.add('open');
+    }
+
+    window.scartaTraccia = chiudiTraccia;
 
     function proprietarioCorrente() {
         try {
@@ -387,6 +429,9 @@
         if (inNavigazione) {
             return;
         }
+        if (!riprendi && leggiTracciaAttiva(['in_pausa', 'in_corso'])) {
+            throw new Error('salva o scarta prima la navigazione in pausa.');
+        }
 
         inNavigazione = true;
         const sessionId = ++trackingSessionId;
@@ -402,6 +447,7 @@
             ultimoPuntoRilevato = gpsTrack[gpsTrack.length - 1];
             map.setView(ultimoPuntoRilevato, 16);
         }
+        document.getElementById('distanza-totale').textContent = liveDistanzaNm.toFixed(2);
 
         mantieniSchermoAcceso();
 
@@ -439,9 +485,7 @@
             console.warn(permessoNegato ? 'Permesso GPS negato:' : 'GPS temporaneamente non disponibile:', errore);
             if (!permessoNegato) return;
 
-            window.fermaGPS();
-            if (window.resetUINavigazione) window.resetUINavigazione();
-            alert('Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.');
+            fermaPerErrore('Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.');
         };
 
         if (isNativo) {
@@ -458,6 +502,7 @@
                 distanceFilter: 2
             };
             const callbackWatcher = function (location, error) {
+                if (!inNavigazione) return;
                 if (error) {
                     allarmeGPS(error);
                     return;
@@ -491,9 +536,7 @@
                     allarmeGPS(errore);
                 } else {
                     console.error('Impossibile avviare il watcher GPS:', errore);
-                    window.fermaGPS();
-                    if (window.resetUINavigazione) window.resetUINavigazione();
-                    alert(`GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`);
+                    fermaPerErrore(`GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`);
                 }
                 return null;
             }).finally(() => {
@@ -504,6 +547,7 @@
             if (navigator.geolocation) {
                 watchId = navigator.geolocation.watchPosition(
                     (posizione) => {
+                        if (!inNavigazione) return;
                         if (posizione.coords.accuracy > 60) {
                             console.warn('GPS impreciso scartato:', posizione.coords.accuracy, 'metri');
                             return;
@@ -520,14 +564,21 @@
     };
 
     function riprendiTracciaSeNecessario() {
-        const traccia = leggiTracciaAttiva();
-        if (!traccia || !isNativo) return;
+        const traccia = leggiTracciaAttiva(['in_corso', 'in_pausa']);
+        if (!traccia) return;
+
+        if (traccia.stato === 'in_pausa' || !isNativo) {
+            ripristinaTracciaInPausa(traccia);
+            return;
+        }
 
         setTimeout(() => {
             window.avviaGPS(true).then(() => {
                 if (inNavigazione && window.impostaUINavigazione) window.impostaUINavigazione(true);
             }).catch((errore) => {
                 console.error('Impossibile riprendere il tracking:', errore);
+                window.fermaGPS();
+                if (window.resetUINavigazione) window.resetUINavigazione();
             });
         }, 250);
     }
@@ -535,6 +586,7 @@
     riprendiTracciaSeNecessario();
 
     window.fermaGPS = function () {
+        const eraAttivo = inNavigazione;
         inNavigazione = false;
         trackingSessionId += 1;
         clearInterval(timerInterval);
@@ -542,8 +594,13 @@
 
         rilasciaSchermo();
 
+        if (eraAttivo) {
+            if (puntiTracciato.length === 0) localStorage.removeItem('navigazione_traccia_attiva');
+            else impostaStatoTraccia('in_pausa');
+        }
+
         if (isNativo && bgWatcherId) {
-            window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId });
+            window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }).catch(() => { });
             bgWatcherId = null;
         } else if (isNativo && bgWatcherPromise) {
             // Se i permessi sono ancora in corso, il completamento dello start
@@ -654,9 +711,10 @@
 
     // --- 4. SALVATAGGIO STORICO GPS REALE ---
     window.salvaRotta = function () {
+        if (inNavigazione) return;
         if (puntiTracciato.length < 2) {
             alert("Rotta troppo breve per essere salvata.");
-            window.cancellaRotta();
+            chiudiTraccia();
             return;
         }
 
@@ -714,7 +772,7 @@
             });
         }
 
-        window.cancellaRotta();
+        chiudiTraccia();
     };
 
     window.esportaGPX = function () {

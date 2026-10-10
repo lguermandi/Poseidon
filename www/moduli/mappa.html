@@ -154,6 +154,9 @@
             transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
             box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
             color: white;
+            max-height: 85dvh;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .bottom-sheet.open {
@@ -170,6 +173,44 @@
         /* Utility per nascondere pianificazione all'avvio */
         #sheet-pianificazione {
             display: block;
+        }
+
+        .sheet-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .sheet-btn {
+            flex: 1 1 110px;
+            padding: 14px 10px;
+            border-radius: 12px;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tattica-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 4px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn-action {
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -205,6 +246,81 @@
         </button>
     </div>
 
+    <!-- Pannello chiusura navigazione (dopo lo stop del GPS) -->
+    <div class="bottom-sheet" id="sheet-salvataggio">
+        <div class="sheet-title">Navigazione in Pausa ⚓</div>
+        <div style="color: #94a3b8; text-align: center; font-size: 0.95rem;">
+            Seleziona un'azione per chiudere l'itinerario.
+        </div>
+        <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #0ea5e9;" onclick="esportaGPX()">📤 Esporta GPX</button>
+            <button class="sheet-btn" style="background: #ef4444;" onclick="scartaRotta()">🗑️ Scarta</button>
+            <button class="sheet-btn" style="background: #10b981;" onclick="confermaSalvataggio()">💾 Salva in
+                Profilo</button>
+        </div>
+    </div>
+
+    <!-- Pannello pianificazione tattica (si apre al secondo punto sulla mappa) -->
+    <div class="bottom-sheet" id="sheet-pianificazione">
+        <div class="sheet-title">Pianificazione Tattica 🧭</div>
+
+        <div style="display: flex; justify-content: space-between; margin: 10px 0; padding: 0 10px;">
+            <div style="text-align: center;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Distanza Tot.</div>
+                <div style="font-size: 1.4rem; font-weight: bold; color: #38bdf8;" id="plan-distanza">0.00 Nm</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Tempo (ETA)</div>
+                <div style="font-size: 1.4rem; font-weight: bold; color: #facc15;" id="plan-tempo">00h 00m</div>
+            </div>
+        </div>
+
+        <div
+            style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="margin: 0; color: #f8fafc; font-size: 0.95rem;">Dati Meteomarini</h4>
+                <button class="btn-action" id="btn-meteo-rotta" data-stato="base"
+                    style="background: #3b82f6; padding: 6px 12px; font-size: 0.8rem;" onclick="scaricaMeteoRotta()">📡
+                    Dati Reali API</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Vento (Nodi)</label>
+                    <input type="number" id="plan-vento-vel" value="8" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Vento (°)</label>
+                    <input type="number" id="plan-vento-dir" value="45" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Corrente (Nodi)</label>
+                    <input type="number" id="plan-corr-vel" value="0.5" step="0.1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
+                </div>
+                <div>
+                    <label style="color: #94a3b8; font-size: 0.75rem;">Dir. Corr. (°)</label>
+                    <input type="number" id="plan-corr-dir" value="90" step="1" oninput="calcolaTempoStimato()"
+                        class="tattica-input">
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
+                <label style="color: #94a3b8; font-size: 0.8rem;">Velocità Propulsiva stimata a vela (Nodi)</label>
+                <input type="number" id="plan-velocita" value="5.0" step="0.5" oninput="calcolaTempoStimato()"
+                    class="tattica-input" style="color: #4ade80; margin-top: 5px;">
+            </div>
+        </div>
+
+        <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #ef4444;" onclick="cancellaRotta()">🗑️ Pulisci</button>
+            <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano"
+                onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
+        </div>
+    </div>
+
     <!-- CARICAMENTO JS ALLA FINE PER EVITARE "CONTAINER NOT FOUND" -->
     <script src="../js/mappa-module.js"></script>
 
@@ -234,6 +350,16 @@
         }
 
         window.resetUINavigazione = () => window.impostaUINavigazione(false);
+
+        function confermaSalvataggio() {
+            document.getElementById('sheet-salvataggio').classList.remove('open');
+            window.salvaRotta();
+        }
+
+        function scartaRotta() {
+            document.getElementById('sheet-salvataggio').classList.remove('open');
+            window.scartaTraccia();
+        }
     </script>
 </body>
 
