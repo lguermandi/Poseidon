@@ -95,6 +95,7 @@
     }
 
     window.scartaTraccia = chiudiTraccia;
+    window.tracciaHaPunti = () => puntiTracciato.length > 0;
 
     function proprietarioCorrente() {
         try {
@@ -355,22 +356,28 @@
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
             };
 
-            html2pdf().set(opt).from(foglio).save().then(() => {
-                // 6. Ripristina l'App allo stato originale
-                map.removeControl(headerControl);
-                map.removeLayer(markerP);
-                map.removeLayer(markerA);
+            Promise.resolve()
+                .then(() => html2pdf().set(opt).from(foglio).save())
+                .catch((errore) => {
+                    console.error('Generazione PDF non riuscita:', errore);
+                    alert('Impossibile generare il PDF. Riprova.');
+                })
+                .finally(() => {
+                    // 6. Ripristina l'App allo stato originale
+                    map.removeControl(headerControl);
+                    map.removeLayer(markerP);
+                    map.removeLayer(markerA);
 
-                if (mainHeader) mainHeader.style.removeProperty('display');
-                if (menuPoseidon) menuPoseidon.style.removeProperty('display');
-                if (fabContainer) fabContainer.style.removeProperty('display');
-                if (hudTop) hudTop.style.removeProperty('display');
+                    if (mainHeader) mainHeader.style.removeProperty('display');
+                    if (menuPoseidon) menuPoseidon.style.removeProperty('display');
+                    if (fabContainer) fabContainer.style.removeProperty('display');
+                    if (hudTop) hudTop.style.removeProperty('display');
 
-                document.getElementById('sheet-pianificazione').classList.add('open');
+                    document.getElementById('sheet-pianificazione').classList.add('open');
 
-                btnPdf.innerHTML = "📥 Genera PDF Rotta";
-                btnPdf.style.background = "#3b82f6";
-            });
+                    btnPdf.innerHTML = "📥 Genera PDF";
+                    btnPdf.style.background = "#3b82f6";
+                });
         }, 2500);
     };
 

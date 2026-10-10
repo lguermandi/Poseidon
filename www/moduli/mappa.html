@@ -315,6 +315,7 @@
         </div>
 
         <div class="sheet-buttons">
+            <button class="sheet-btn" style="background: #334155;" onclick="chiudiPianificazione()">✖ Chiudi</button>
             <button class="sheet-btn" style="background: #ef4444;" onclick="cancellaRotta()">🗑️ Pulisci</button>
             <button class="sheet-btn" style="background: #3b82f6;" id="btn-pdf-piano"
                 onclick="scaricaPDFPianificato()">📥 Genera PDF</button>
@@ -345,7 +346,7 @@
             } else {
                 window.impostaUINavigazione(false);
                 window.fermaGPS();
-                document.getElementById('sheet-salvataggio')?.classList.add('open');
+                if (window.tracciaHaPunti()) document.getElementById('sheet-salvataggio')?.classList.add('open');
             }
         }
 
@@ -359,6 +360,10 @@
         function scartaRotta() {
             document.getElementById('sheet-salvataggio').classList.remove('open');
             window.scartaTraccia();
+        }
+
+        function chiudiPianificazione() {
+            document.getElementById('sheet-pianificazione').classList.remove('open');
         }
     </script>
 </body>
