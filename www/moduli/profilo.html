@@ -19,12 +19,153 @@
             min-height: 100%;
             height: auto;
             overflow: visible;
-            padding: 18px 14px calc(28px + env(safe-area-inset-bottom));
+            padding: 24px 18px calc(32px + env(safe-area-inset-bottom));
         }
 
         html {
             height: 100%;
             overflow: hidden;
+        }
+
+        body.modulo-scrollabile h1,
+        body.modulo-scrollabile h2,
+        body.modulo-scrollabile h3 {
+            letter-spacing: -0.02em;
+        }
+
+        .profile-header {
+            margin: 0 auto 24px;
+            max-width: 1280px;
+        }
+
+        .profile-header h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.5rem, 2vw, 2rem);
+        }
+
+        .profile-content {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .profile-hero {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.1fr) minmax(280px, 1.5fr) minmax(220px, 0.8fr);
+            align-items: center;
+            gap: 24px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+        }
+
+        .profile-identity {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            flex: 0 0 64px;
+            background: linear-gradient(135deg, var(--accento-ciano), #2563eb);
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 24px rgba(14, 165, 233, 0.24);
+        }
+
+        .profile-email {
+            margin: 0 0 8px;
+            font-size: 1rem;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-stats {
+            margin: 0;
+        }
+
+        .profile-hero-action {
+            min-height: 48px;
+        }
+
+        .profile-grid {
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+            align-items: stretch;
+        }
+
+        .profile-grid > .panel {
+            margin-bottom: 0;
+        }
+
+        .profile-panel-title {
+            margin: 0 0 22px;
+            font-size: 1rem;
+        }
+
+        .profile-panel-title::after {
+            content: '';
+            display: block;
+            width: 34px;
+            height: 3px;
+            margin-top: 9px;
+            border-radius: 4px;
+            background: var(--accento-ciano);
+        }
+
+        .profile-data-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .profile-archive {
+            margin-top: 24px !important;
+        }
+
+        .profile-archive h3 {
+            margin-top: 0;
+        }
+
+        @media (min-width: 900px) {
+            body.modulo-scrollabile>main {
+                padding: 34px 36px 48px;
+            }
+
+            #form-container {
+                max-width: 620px;
+                margin: 42px auto;
+                padding: 32px;
+            }
+
+            .profile-grid {
+                gap: 24px;
+            }
+
+            .stat-widget-container {
+                gap: 16px;
+            }
+
+            .stat-widget {
+                padding: 18px 14px;
+            }
+        }
+
+        @media (max-width: 899px) {
+            .profile-hero {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-hero {
+                padding: 20px;
+            }
         }
 
         .stat-widget-container {
@@ -97,7 +238,7 @@
 <body class="modulo-scrollabile"
     style="display: block; height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain;">
     <main>
-        <header style="margin-bottom: 25px;">
+        <header class="profile-header">
             <h1 style="margin-bottom: 5px;">Area Personale</h1>
             <div id="sync-status" class="sync-indicator">
                 <span class="dot"></span> Controllo sincronizzazione...
@@ -126,20 +267,18 @@
         </div>
 
         <!-- DASHBOARD UTENTE LOGGATO -->
-        <div id="profilo-container" style="display: none;">
+        <div id="profilo-container" class="profile-content" style="display: none;">
 
-            <div class="panel">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                    <div
-                        style="width: 50px; height: 50px; background: var(--accento-ciano); border-radius: 50%; display: grid; place-items: center; font-size: 1.5rem;">
-                        ⚓</div>
+            <div class="panel profile-hero">
+                <div class="profile-identity">
+                    <div class="profile-avatar">⚓</div>
                     <div>
-                        <h2 style="margin: 0; font-size: 1.1rem;" id="testo-email-utente">Comandante</h2>
+                        <h2 class="profile-email" id="testo-email-utente">Comandante</h2>
                         <span class="badge-status">Profilo Verificato</span>
                     </div>
                 </div>
 
-                <div class="stat-widget-container">
+                <div class="stat-widget-container profile-stats">
                     <div class="stat-widget">
                         <span class="value" id="stat-quiz">0</span>
                         <span class="label">Quiz</span>
@@ -150,7 +289,7 @@
                     </div>
                 </div>
 
-                <button class="btn-action" onclick="window.location.href='logbook.html'">
+                <button class="btn-action profile-hero-action" onclick="window.location.href='logbook.html'">
                     📖 Apri Giornale di Bordo
                 </button>
             </div>
@@ -158,7 +297,7 @@
             <div class="profile-grid">
                 <!-- Impostazioni -->
                 <div class="panel">
-                    <h3>Configurazione Bordo</h3>
+                    <h3 class="profile-panel-title">Configurazione Bordo</h3>
                     <div class="input-group">
                         <label>Qualifica / Obiettivo</label>
                         <input type="text" id="profilo-qualifica" placeholder="es. Patente Nautica"
@@ -174,8 +313,8 @@
 
                 <!-- Backup e Dati -->
                 <div class="panel">
-                    <h3>Gestione Dati</h3>
-                    <div style="display: grid; gap: 10px;">
+                    <h3 class="profile-panel-title">Gestione Dati</h3>
+                    <div class="profile-data-actions">
                         <button class="btn-action" style="background: #3b82f6;" onclick="esportaBackupCompleto()">💾
                             Esporta Backup .JSON</button>
                         <button class="btn-action"
@@ -190,7 +329,7 @@
             </div>
 
             <!-- Archivio Rotte -->
-            <div class="panel" style="margin-top: 20px;">
+            <div class="panel profile-archive">
                 <h3>Archivio GPS (GPX)</h3>
                 <div id="lista-tracce">
                     <!-- Dinamico -->

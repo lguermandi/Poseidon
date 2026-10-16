@@ -88,6 +88,12 @@
             const mazzo = [...databaseGrezzo].sort(() => 0.5 - Math.random());
             domandeSessione = mazzo.slice(0, 20);
             tempoRimanente = 30 * 60;
+        } else if (modalita === 'vela') {
+            domandeSessione = databaseGrezzo
+                .filter((q) => appartieneAllaVela(q))
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 30);
+            tempoRimanente = domandeSessione.length * 90;
         } else if (modalita === 'argomento') {
             const argScelto = document.getElementById('select-argomento').value;
             domandeSessione = databaseGrezzo.filter((q) => q.argomento === argScelto);
@@ -105,6 +111,15 @@
 
         aggiornaInterfacciaDomanda();
         avviaTimer();
+    }
+
+    function appartieneAllaVela(domanda) {
+        const testoCategoria = `${domanda.sezione || ''} ${domanda.argomento || ''}`
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+        return testoCategoria.includes('vela');
     }
 
     function aggiornaInterfacciaDomanda() {
@@ -216,7 +231,11 @@
             azione: 'salva_quiz',
             email: sessione.email,
             sessionToken: sessione.token,
-            modalita: mod === 'esame' ? 'Simulazione Esame Base' : 'Argomento',
+            modalita: mod === 'esame'
+                ? 'Simulazione Esame Base'
+                : mod === 'vela'
+                    ? 'Quiz Tematici Vela'
+                    : 'Argomento',
             punteggio: punt,
             esito: esito,
             errori: errTxt

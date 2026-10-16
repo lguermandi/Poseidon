@@ -24,6 +24,7 @@
     let liveRotta = L.polyline([], { color: '#22c55e', weight: 4 }).addTo(map);
     let liveDistanzaNm = 0;
     let ultimoPuntoRilevato = null;
+    const metricheGPS = new GpsTrackMetrics();
     let wakeLock = null;
 
     const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
@@ -65,6 +66,7 @@
         gpsTrack = [];
         liveDistanzaNm = 0;
         ultimoPuntoRilevato = null;
+        metricheGPS.reset();
         liveRotta.setLatLngs([]);
         window.cancellaRotta(true);
     }
@@ -85,6 +87,8 @@
         gpsTrack = traccia.punti.map(punto => L.latLng(punto.lat, punto.lon));
         liveDistanzaNm = Number(traccia.distanza) || 0;
         ultimoPuntoRilevato = gpsTrack[gpsTrack.length - 1];
+        const ultimoPunto = traccia.punti[traccia.punti.length - 1];
+        metricheGPS.reset(ultimoPunto.lat, ultimoPunto.lon, ultimoPunto.time);
         liveRotta.setLatLngs(gpsTrack);
         map.setView(ultimoPuntoRilevato, 16);
         document.getElementById('distanza-totale').textContent = liveDistanzaNm.toFixed(2);
@@ -446,6 +450,12 @@
         gpsTrack = tracciaSalvata?.punti.map(punto => L.latLng(punto.lat, punto.lon)) || [];
         puntiTracciato = tracciaSalvata?.punti || [];
         liveDistanzaNm = Number(tracciaSalvata?.distanza) || 0;
+        const ultimoPuntoSalvato = puntiTracciato[puntiTracciato.length - 1];
+        if (ultimoPuntoSalvato) {
+            metricheGPS.reset(ultimoPuntoSalvato.lat, ultimoPuntoSalvato.lon, ultimoPuntoSalvato.time);
+        } else {
+            metricheGPS.reset();
+        }
         liveRotta.setLatLngs([]);
         window.cancellaRotta(true);
 
@@ -622,33 +632,9 @@
     function elaboraCoordinate(lat, lng, speedMs, timestamp) {
         const adesso = timestamp ? timestamp : Date.now();
         const nuovoPunto = L.latLng(lat, lng);
-
-        let velocitaCalcolata = 0;
-
-        // Calcoliamo la distanza solo se abbiamo già almeno un punto precedente
-        if (gpsTrack.length > 0) {
-            const ultimoPunto = gpsTrack[gpsTrack.length - 1];
-            const distanzaMetri = ultimoPunto.distanceTo(nuovoPunto);
-
-            // Filtro Rumore: ignora spostamenti inferiori a 2 metri (jitter del GPS)
-            if (distanzaMetri > 2) {
-                const distanzaNm = distanzaMetri / 1852;
-                liveDistanzaNm += distanzaNm;
-
-                // Calcolo manuale velocità se speedMs è null o instabile
-                // Aggiunto controllo di sicurezza: puntiTracciato deve avere elementi
-                if ((speedMs === null || speedMs === undefined || speedMs === 0) && puntiTracciato.length > 0) {
-                    const tempoSecondi = (adesso - new Date(puntiTracciato[puntiTracciato.length - 1].time).getTime()) / 1000;
-                    if (tempoSecondi > 0) {
-                        velocitaCalcolata = (distanzaMetri / tempoSecondi) * 1.94384; // da m/s a nodi
-                    }
-                } else {
-                    velocitaCalcolata = (speedMs || 0) * 1.94384;
-                }
-            } else {
-                velocitaCalcolata = 0; // Siamo praticamente fermi
-            }
-        }
+        const metriche = metricheGPS.update(lat, lng, speedMs, adesso);
+        const velocitaCalcolata = metriche.speedKnots;
+        liveDistanzaNm += metriche.distanceNm;
 
         // Aggiorna variabili globali e UI
         ultimoPuntoRilevato = nuovoPunto;
@@ -799,4 +785,3 @@
         URL.revokeObjectURL(url);
     };
 })();
-
