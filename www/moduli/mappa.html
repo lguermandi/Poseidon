@@ -8,10 +8,10 @@
     <title>Mappa</title>
 
     <!-- Librerie esterne -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha384-Yv5O+t3uE3hunW8uyrbpPW3iw6/5/Y7HitWJBLgqfMoA36NogMmy+8wWZMpn3HWc" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.2/src/index.js" integrity="sha384-J7cw2fbG1T4C5MirTVUxsZGaMfw2m0XsCgOQEqUvB1OF9VIsHWuZF1GmyVRzs7eu" crossorigin="anonymous"></script>
 
     <style>
         /* RESET TOTALE E ISOLAMENTO */
@@ -106,7 +106,7 @@
         /* PULSANTI FLOTTANTI */
         .fab-container {
             position: absolute;
-            bottom: 30px;
+            bottom: 90px;
             right: 20px;
             z-index: 1000;
             display: flex;
@@ -212,16 +212,98 @@
             font-weight: 700;
             cursor: pointer;
         }
+
+        /* PANNELLO POSIZIONE: precisione e coordinate del GPS */
+        .pannello-posizione {
+            position: absolute;
+            top: 15px;
+            left: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .pannello-posizione .hud-box {
+            flex: 1;
+        }
+
+        #posizione-coordinate {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+        }
+
+        /* BARRA SCHEDE: Posizione / Navigazione */
+        .tab-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1500;
+            display: flex;
+            background: #1e293b;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .tab-btn {
+            flex: 1;
+            height: 56px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .tab-btn i {
+            font-size: 1.4rem;
+        }
+
+        .tab-btn.active {
+            color: #38bdf8;
+        }
+
+        /* Ogni scheda mostra solo i propri controlli */
+        body[data-scheda="posizione"] .solo-navigazione,
+        body[data-scheda="navigazione"] .solo-posizione {
+            display: none !important;
+        }
     </style>
 </head>
 
-<body>
+<body data-scheda="posizione">
 
     <!-- IL CONTENITORE DELLA MAPPA -->
     <div id="mappa-container"></div>
 
-    <!-- HUD SUPERIORE -->
-    <div class="hud-top">
+    <!-- SCHEDA POSIZIONE: precisione GPS e coordinate correnti -->
+    <div class="pannello-posizione solo-posizione">
+        <div class="hud-box">
+            <span class="hud-label">Precisione GPS</span>
+            <span class="hud-value" id="gps-precisione">--</span>
+        </div>
+        <div class="hud-box">
+            <span class="hud-label">Coordinate</span>
+            <span class="hud-value" id="posizione-coordinate">In attesa del GPS…</span>
+        </div>
+    </div>
+
+    <!-- SCHEDA NAVIGAZIONE: registrazione del percorso -->
+    <div class="hud-top solo-navigazione">
         <div class="hud-box">
             <span class="hud-label">Dist (Nm)</span>
             <span class="hud-value" id="distanza-totale">0.00</span>
@@ -238,13 +320,25 @@
 
     <!-- TASTI AZIONE -->
     <div class="fab-container">
-        <button class="fab-btn" id="btn-center" onclick="centraMappa()">
+        <button class="fab-btn solo-posizione" id="btn-center" onclick="centraMappa()">
             <i class="ph ph-crosshair"></i>
         </button>
-        <button class="fab-btn" id="btn-naviga" onclick="interruttoreNavigazione()">
+        <button class="fab-btn solo-navigazione" id="btn-naviga" onclick="interruttoreNavigazione()">
             <i class="ph ph-play" id="icona-naviga"></i>
         </button>
     </div>
+
+    <!-- BARRA SCHEDE -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="posizione" onclick="cambiaScheda('posizione')">
+            <i class="ph ph-map-pin"></i>
+            <span>Posizione</span>
+        </button>
+        <button class="tab-btn" data-tab="navigazione" onclick="cambiaScheda('navigazione')">
+            <i class="ph ph-compass"></i>
+            <span id="etichetta-navigazione">Navigazione</span>
+        </button>
+    </nav>
 
     <!-- Pannello chiusura navigazione (dopo lo stop del GPS) -->
     <div class="bottom-sheet" id="sheet-salvataggio">
@@ -323,6 +417,7 @@
     </div>
 
     <!-- CARICAMENTO JS ALLA FINE PER EVITARE "CONTAINER NOT FOUND" -->
+    <script src="../js/config.js"></script>
     <script src="../js/core_gps.js"></script>
     <script src="../js/mappa-module.js"></script>
 
@@ -333,6 +428,7 @@
             uiInNavigazione = attiva;
             document.getElementById('btn-naviga').classList.toggle('active', attiva);
             document.getElementById('icona-naviga').className = attiva ? 'ph ph-stop' : 'ph ph-play';
+            document.getElementById('etichetta-navigazione').textContent = attiva ? '● REC' : 'Navigazione';
         };
 
         function interruttoreNavigazione() {

@@ -1,11 +1,14 @@
-const NOME_CACHE = 'nautica-app-v16';
+const NOME_CACHE = 'nautica-app-8e4e645aeb61';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
     './',
     './index.html',
     './css/style.css',
+    './fonts/inter-latin-variable.woff2',
     './js/app-shell.js',
+    './js/config.js',
+    './js/core_gps.js',
     './js/core_navigazione.js',
     './js/core_vela.js',
     './js/mappa-module.js',
@@ -19,6 +22,7 @@ const FILE_DA_SALVARE = [
     './moduli/carteggio.html',
     './moduli/quiz.html',
     './moduli/vela.html',
+    './moduli/vhf.html',
     './moduli/mappa.html',
     './moduli/meteo.html',
     './moduli/ancora.html',
@@ -28,11 +32,11 @@ const FILE_DA_SALVARE = [
     './moduli/motore.html',
     './manifest.json',
     './img/icona.svg',
-    'https://unpkg.com/@phosphor-icons/web',
+    'https://unpkg.com/@phosphor-icons/web@2.1.2/src/index.js',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-    'https://cdn.jsdelivr.net/npm/chart.js'
+    'https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js'
 ];
 
 // FASE 1: Installazione (scarica tutto e lo mette in stiva)

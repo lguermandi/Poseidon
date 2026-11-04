@@ -2,7 +2,7 @@
  * PROFILO.JS - Logica di gestione utente e dati
  */
 
-const API_URL = "https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec"; // Sostituisci con il tuo URL
+const API_URL = POSEIDON_API_URL;
 const SESSIONE_KEY = 'poseidon_sessione';
 
 document.addEventListener('DOMContentLoaded', () => {

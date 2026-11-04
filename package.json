@@ -1,11 +1,12 @@
 {
   "name": "software-Poseidon-feedback",
   "version": "1.0.0",
-  "description": "",
-  "main": "config.js",
+  "description": "Poseidon – Plancia di Comando Nautica: PWA per quiz patente, carteggio e strumenti di bordo",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "cache:version": "node scripts/aggiorna-versione-cache.js"
   },
   "keywords": [],
   "author": "",

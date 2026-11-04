@@ -162,16 +162,6 @@ const tabellaMinisteriale = [
     { p: 360, dev: 2.5 } // Il ciclo si chiude
 ];
 
-const miaBarca = new DeviationTable(tabellaMinisteriale);
-
-// Vogliamo la deviazione per Pb = 14°
-const pb = 14;
-const devCalcolata = miaBarca.getDeviation(pb);
-
-console.log(`Per Pb ${pb}°, la deviazione è: ${devCalcolata}°`);
-// Output atteso: Per Pb 14°, la deviazione è: 2.9°
-
-
 class VectorMath {
     /**
      * Converte i gradi in radianti per le funzioni Math di JS

@@ -217,6 +217,7 @@
         </div>
     </div>
 
+    <script src="../js/config.js"></script>
     <script>
         // Recupera i log salvati in precedenza nella memoria del browser (localStorage)
         let registroLog;
@@ -296,7 +297,7 @@
             if (!sessione?.token || !sessione.email || !navigator.onLine) return;
             const payload = { azione: 'salva_dati', email: sessione.email, sessionToken: sessione.token, tipoDato: 'logbook', contenuto: registroLog };
             try {
-                const risposta = await fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', { method: 'POST', body: JSON.stringify(payload) });
+                const risposta = await fetch(POSEIDON_API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
             } catch {
                 let coda;
@@ -413,7 +414,7 @@
             const file = new File([contenuto], nomeFile, { type: 'application/json' });
 
             if (sessione?.token && sessione.email) {
-                fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', {
+                fetch(POSEIDON_API_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         azione: 'salva_dati',

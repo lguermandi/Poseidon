@@ -14,7 +14,6 @@
 
     let inNavigazione = false;
     let bgWatcherId = null;
-    let bgWatcherPromise = null;
     let trackingSessionId = 0;
     let watchId = null;
     let startTime = null;
@@ -26,6 +25,15 @@
     let ultimoPuntoRilevato = null;
     const metricheGPS = new GpsTrackMetrics();
     let wakeLock = null;
+
+    // Servizio di posizione condiviso: un solo watcher alimenta sia la scheda Posizione sia la registrazione
+    let posizioneAttiva = false;
+    let posizioneSessione = 0;
+    let posizioneBloccata = false;
+    let posizioneMarker = null;
+    let ultimaPosizioneNota = null;
+    let schedaAttiva = 'posizione';
+    let primaCentratura = true;
 
     const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
@@ -78,6 +86,153 @@
         alert(messaggio);
     }
 
+    function aggiornaStatoGPS(precisioneMetri) {
+        const elemento = document.getElementById('gps-precisione');
+        if (!elemento) return;
+        elemento.textContent = Number.isFinite(precisioneMetri)
+            ? `±${Math.round(precisioneMetri)} m`
+            : 'assente';
+    }
+
+    function gestisciErroreGPS(errore, avvioFallito = false) {
+        const codiceErrore = `${errore?.code || ''} ${errore?.message || ''}`;
+        const permessoNegato = errore?.code === 1 || /NOT_AUTHORIZED|permission denied|permesso negato/i.test(codiceErrore);
+
+        if (!permessoNegato && !avvioFallito) {
+            console.warn('GPS temporaneamente non disponibile:', errore);
+            aggiornaStatoGPS(null);
+            return;
+        }
+
+        console.warn(permessoNegato ? 'Permesso GPS negato:' : 'Avvio GPS non riuscito:', errore);
+        fermaPosizione();
+        posizioneBloccata = true;
+        const messaggio = permessoNegato
+            ? 'Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.'
+            : `GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`;
+        if (inNavigazione) {
+            fermaPerErrore(messaggio);
+        } else {
+            aggiornaStatoGPS(null);
+            alert(messaggio);
+        }
+    }
+
+    function riceviPosizione(lat, lng, speedMs, timestamp, precisione) {
+        aggiornaStatoGPS(precisione);
+        const punto = L.latLng(lat, lng);
+        ultimaPosizioneNota = punto;
+
+        const coordinateEl = document.getElementById('posizione-coordinate');
+        if (coordinateEl) coordinateEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        if (!posizioneMarker) {
+            posizioneMarker = L.circleMarker(punto, { radius: 7, color: '#ffffff', weight: 2, fillColor: '#38bdf8', fillOpacity: 1 }).addTo(map);
+        } else {
+            posizioneMarker.setLatLng(punto);
+        }
+
+        if (primaCentratura && schedaAttiva === 'posizione') {
+            primaCentratura = false;
+            map.setView(punto, 16);
+        }
+
+        if (inNavigazione) elaboraCoordinate(lat, lng, speedMs, timestamp);
+    }
+
+    function avviaPosizione() {
+        if (posizioneAttiva) return;
+
+        if (isNativo) {
+            const backgroundGeolocation = window.Capacitor?.Plugins?.BackgroundGeolocation;
+            if (!backgroundGeolocation?.addWatcher) {
+                throw new Error('Plugin BackgroundGeolocation non registrato nell’app.');
+            }
+            posizioneAttiva = true;
+            const sessione = ++posizioneSessione;
+            richiediPermessiTracking().then(() => avviaWatcherNativo(backgroundGeolocation, sessione));
+        } else {
+            if (!navigator.geolocation) {
+                throw new Error('Sensore GPS non supportato dal dispositivo.');
+            }
+            posizioneAttiva = true;
+            const sessione = ++posizioneSessione;
+            watchId = navigator.geolocation.watchPosition(
+                (posizione) => {
+                    if (sessione !== posizioneSessione) return;
+                    riceviPosizione(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp, posizione.coords.accuracy);
+                },
+                (errore) => {
+                    if (sessione === posizioneSessione) gestisciErroreGPS(errore);
+                },
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 60000 }
+            );
+        }
+    }
+
+    async function avviaWatcherNativo(backgroundGeolocation, sessione, tentativo = 0) {
+        const opzioniWatcher = {
+            backgroundTitle: "Poseidon Navigazione",
+            backgroundMessage: "Rilevamento posizione in corso.",
+            requestPermissions: true,
+            stale: false,
+            distanceFilter: 2
+        };
+        try {
+            const id = await backgroundGeolocation.addWatcher(opzioniWatcher, (location, error) => {
+                if (sessione !== posizioneSessione) return;
+                if (error) {
+                    gestisciErroreGPS(error);
+                    return;
+                }
+                riceviPosizione(location.latitude, location.longitude, location.speed, location.time, location.accuracy);
+            });
+            if (sessione !== posizioneSessione) {
+                await backgroundGeolocation.removeWatcher({ id });
+                return;
+            }
+            bgWatcherId = id;
+        } catch (errore) {
+            if (sessione !== posizioneSessione) return;
+            const servizioInAvvio = /service not running/i.test(errore?.message || '');
+            if (servizioInAvvio && tentativo < 4) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+                if (sessione === posizioneSessione) return avviaWatcherNativo(backgroundGeolocation, sessione, tentativo + 1);
+                return;
+            }
+            posizioneAttiva = false;
+            gestisciErroreGPS(errore, true);
+        }
+    }
+
+    function fermaPosizione() {
+        posizioneSessione += 1;
+        posizioneAttiva = false;
+        if (isNativo && bgWatcherId !== null) {
+            window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }).catch(() => { });
+            bgWatcherId = null;
+        }
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+    }
+
+    function aggiornaServizioPosizione() {
+        const serveAPosizione = inNavigazione || (schedaAttiva === 'posizione' && !document.hidden && !posizioneBloccata);
+        if (!serveAPosizione) {
+            fermaPosizione();
+            return;
+        }
+        if (posizioneAttiva) return;
+        try {
+            avviaPosizione();
+        } catch (errore) {
+            console.error('Posizione non disponibile:', errore);
+            aggiornaStatoGPS(null);
+        }
+    }
+
     function ripristinaTracciaInPausa(traccia) {
         if (traccia.punti.length === 0) {
             localStorage.removeItem('navigazione_traccia_attiva');
@@ -124,7 +279,7 @@
 
     // --- 1. PLOTTER MANUALE E PIANIFICAZIONE TATTICA ---
     map.on('click', function (e) {
-        if (inNavigazione) return;
+        if (inNavigazione || schedaAttiva !== 'navigazione') return;
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
         arrayWaypoint.push([lat, lng]);
@@ -300,6 +455,12 @@
         const hudTop = document.querySelector('.hud-top');
         if (hudTop) hudTop.style.setProperty('display', 'none', 'important');
 
+        const pannelloPosizione = document.querySelector('.pannello-posizione');
+        if (pannelloPosizione) pannelloPosizione.style.setProperty('display', 'none', 'important');
+
+        const tabBar = document.querySelector('.tab-bar');
+        if (tabBar) tabBar.style.setProperty('display', 'none', 'important');
+
         document.getElementById('sheet-pianificazione').classList.remove('open');
 
         // Ripristina lo scroll al vertice per non confondere il fotografo PDF
@@ -428,8 +589,8 @@
     };
 
     window.centraMappa = function () {
-        if (ultimoPuntoRilevato) {
-            map.setView(ultimoPuntoRilevato, 16);
+        if (ultimaPosizioneNota) {
+            map.setView(ultimaPosizioneNota, 16);
         } else if (arrayWaypoint.length > 0) {
             map.setView(arrayWaypoint[arrayWaypoint.length - 1], 15);
         }
@@ -445,7 +606,7 @@
         }
 
         inNavigazione = true;
-        const sessionId = ++trackingSessionId;
+        trackingSessionId += 1;
         const tracciaSalvata = riprendi ? leggiTracciaAttiva() : null;
         gpsTrack = tracciaSalvata?.punti.map(punto => L.latLng(punto.lat, punto.lon)) || [];
         puntiTracciato = tracciaSalvata?.punti || [];
@@ -494,90 +655,8 @@
             }));
         }
 
-        await richiediPermessiTracking();
-
-        const allarmeGPS = (errore) => {
-            const codiceErrore = `${errore?.code || ''} ${errore?.message || ''}`;
-            const permessoNegato = errore?.code === 1 || /NOT_AUTHORIZED|permission denied|permesso negato/i.test(codiceErrore);
-            console.warn(permessoNegato ? 'Permesso GPS negato:' : 'GPS temporaneamente non disponibile:', errore);
-            if (!permessoNegato) return;
-
-            fermaPerErrore('Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.');
-        };
-
-        if (isNativo) {
-            const backgroundGeolocation = window.Capacitor?.Plugins?.BackgroundGeolocation;
-            if (!backgroundGeolocation?.addWatcher) {
-                throw new Error('Plugin BackgroundGeolocation non registrato nell’app.');
-            }
-
-            const opzioniWatcher = {
-                backgroundTitle: "Poseidon Navigazione",
-                backgroundMessage: "Registrazione rotta in corso.",
-                requestPermissions: true,
-                stale: false,
-                distanceFilter: 2
-            };
-            const callbackWatcher = function (location, error) {
-                if (!inNavigazione) return;
-                if (error) {
-                    allarmeGPS(error);
-                    return;
-                }
-                elaboraCoordinate(location.latitude, location.longitude, location.speed, location.time);
-            };
-
-            const aggiungiWatcher = async (tentativo = 0) => {
-                try {
-                    return await backgroundGeolocation.addWatcher(opzioniWatcher, callbackWatcher);
-                } catch (errore) {
-                    const servizioInAvvio = /service not running/i.test(errore?.message || '');
-                    if (servizioInAvvio && tentativo < 4 && inNavigazione && sessionId === trackingSessionId) {
-                        await new Promise(resolve => setTimeout(resolve, 400));
-                        return aggiungiWatcher(tentativo + 1);
-                    }
-                    throw errore;
-                }
-            };
-
-            bgWatcherPromise = aggiungiWatcher().then(async id => {
-                if (!inNavigazione || sessionId !== trackingSessionId) {
-                    await backgroundGeolocation.removeWatcher({ id });
-                    return null;
-                }
-                bgWatcherId = id;
-                return id;
-            }).catch((errore) => {
-                if (!inNavigazione || sessionId !== trackingSessionId) return null;
-                if (errore?.code === 'NOT_AUTHORIZED' || errore?.code === 1 || /permission denied/i.test(errore?.message || '')) {
-                    allarmeGPS(errore);
-                } else {
-                    console.error('Impossibile avviare il watcher GPS:', errore);
-                    fermaPerErrore(`GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`);
-                }
-                return null;
-            }).finally(() => {
-                bgWatcherPromise = null;
-            });
-            await bgWatcherPromise;
-        } else {
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    (posizione) => {
-                        if (!inNavigazione) return;
-                        if (posizione.coords.accuracy > 60) {
-                            console.warn('GPS impreciso scartato:', posizione.coords.accuracy, 'metri');
-                            return;
-                        }
-                        elaboraCoordinate(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp);
-                    },
-                    (errore) => allarmeGPS(errore),
-                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 60000 }
-                );
-            } else {
-                allarmeGPS(new Error("Sensore GPS non supportato dal dispositivo."));
-            }
-        }
+        posizioneBloccata = false;
+        avviaPosizione();
     };
 
     function riprendiTracciaSeNecessario() {
@@ -601,6 +680,17 @@
     }
 
     riprendiTracciaSeNecessario();
+    aggiornaServizioPosizione();
+
+    window.cambiaScheda = function (scheda) {
+        schedaAttiva = scheda;
+        posizioneBloccata = false;
+        document.body.dataset.scheda = scheda;
+        document.querySelectorAll('.tab-btn').forEach(bottone => bottone.classList.toggle('active', bottone.dataset.tab === scheda));
+        if (scheda !== 'navigazione') document.getElementById('sheet-pianificazione')?.classList.remove('open');
+        aggiornaServizioPosizione();
+        setTimeout(() => map.invalidateSize(), 50);
+    };
 
     window.fermaGPS = function () {
         const eraAttivo = inNavigazione;
@@ -616,17 +706,7 @@
             else impostaStatoTraccia('in_pausa');
         }
 
-        if (isNativo && bgWatcherId) {
-            window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }).catch(() => { });
-            bgWatcherId = null;
-        } else if (isNativo && bgWatcherPromise) {
-            // Se i permessi sono ancora in corso, il completamento dello start
-            // vedra inNavigazione=false e rimuovera subito il watcher.
-            bgWatcherPromise.catch(() => { });
-        } else if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-        }
+        aggiornaServizioPosizione();
     };
 
     function elaboraCoordinate(lat, lng, speedMs, timestamp) {
@@ -694,6 +774,10 @@
         }, 200);
     });
 
+    document.addEventListener('visibilitychange', () => {
+        aggiornaServizioPosizione();
+    });
+
     function rilasciaSchermo() {
         if (wakeLock !== null) {
             wakeLock.release().then(() => {
@@ -754,7 +838,7 @@
                 tipoDato: 'registro_sicurezza_rotta',
                 contenuto: nuovaRotta
             };
-            fetch('https://script.google.com/macros/s/AKfycbz66PaHt0R7KJclqVBHGVOSGHrTBBHRGl5HKl7AarzPBa9ZcmJCYqKrHxpoSacrJBw/exec', {
+            fetch(POSEIDON_API_URL, {
                 method: 'POST',
                 body: JSON.stringify(payloadCloud)
             }).then((risposta) => {
