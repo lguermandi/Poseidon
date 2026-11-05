@@ -6,6 +6,9 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Compilazione APK
@@ -46,7 +49,7 @@ jobs:
         run: echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;29.0.3"
 
       - name: 8. Firma digitale dell'APK
-        uses: r0adkll/sign-android-release@v1
+        uses: r0adkll/sign-android-release@dbeba6b98a60b0fd540c02443c7f428cdedf0e7f
         id: sign_app
         with:
           releaseDirectory: android/app/build/outputs/apk/release

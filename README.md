@@ -123,9 +123,11 @@ cd android
 .\gradlew.bat assembleRelease
 ```
 
-Il workflow [build-android.yml](./.github/workflows/build-android.yml) gira su push su `main`/`master`: installa le dipendenze, esegue `npx cap sync android`, compila `assembleRelease`, firma l'APK con il keystore memorizzato nei secret (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, alias `poseidon`) e carica l'artifact `Poseidon-APK-Ufficiale`.
+Il workflow [build-android.yml](./.github/workflows/build-android.yml) gira su push su `main`/`master`: installa le dipendenze, esegue `npx cap sync android`, compila `assembleRelease`, firma l'APK con il keystore memorizzato nei secret (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, alias `poseidon`) e carica l'artifact `Poseidon-APK-Ufficiale`. L'action di firma è fissata a un commit SHA e il workflow ha permessi `contents: read`.
 
-Il workflow [genera-chiave.yml](./.github/workflows/genera-chiave.yml) (manuale) genera un keystore `poseidon.jks` con `keytool`. Il keystore non va committato nel repository e i file di build sono esclusi dal `.gitignore`.
+Genera il keystore su una macchina fidata, non in GitHub Actions, con `keytool -genkeypair -v -keystore poseidon.jks -keyalg RSA -keysize 2048 -validity 10000 -alias poseidon -dname "CN=Poseidon, OU=Poseidon, O=Vela, C=IT"`; inserisci una password robusta quando richiesto e usa la stessa password per keystore e chiave. In PowerShell, ottieni il Base64 con `[Convert]::ToBase64String([IO.File]::ReadAllBytes("poseidon.jks"))`. Non committare né condividere il file o il valore Base64: salva quest'ultimo e la password in **Settings > Secrets and variables > Actions** del repository, rispettivamente come `KEYSTORE_BASE64` e `KEYSTORE_PASSWORD`; non inserirli in workflow, log o artifact.
+
+Il precedente workflow di generazione pubblicava il keystore come artifact. Se è stato eseguito, considera compromessa la chiave generata: elimina gli artifact e le esecuzioni che la rendono scaricabile, aggiorna i secrets e valuta la rotazione della chiave secondo il canale di distribuzione dell'app (la rotazione può impedire gli aggiornamenti agli utenti esistenti).
 
 Plugin nativi: `@capacitor-community/background-geolocation` per la traccia GPS in background, `@capacitor/local-notifications` per le notifiche.
 
