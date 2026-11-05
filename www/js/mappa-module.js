@@ -37,22 +37,6 @@
 
     const isNativo = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
-    async function richiediPermessiTracking() {
-        if (!isNativo) return;
-
-        try {
-            const notifiche = window.Capacitor?.Plugins?.LocalNotifications;
-            if (notifiche) {
-                const statoNotifiche = await notifiche.checkPermissions();
-                if (statoNotifiche.display !== 'granted') {
-                    await notifiche.requestPermissions();
-                }
-            }
-        } catch (errore) {
-            console.warn('Permesso notifiche non disponibile:', errore);
-        }
-    }
-
     function leggiTracciaAttiva(stati = ['in_corso']) {
         try {
             const traccia = JSON.parse(localStorage.getItem('navigazione_traccia_attiva') || 'null');
@@ -158,7 +142,7 @@
             }
             posizioneAttiva = true;
             const sessione = ++posizioneSessione;
-            richiediPermessiTracking().then(() => avviaWatcherNativo(backgroundGeolocation, sessione));
+            avviaWatcherNativo(backgroundGeolocation, sessione);
         } else {
             if (!navigator.geolocation) {
                 throw new Error('Sensore GPS non supportato dal dispositivo.');

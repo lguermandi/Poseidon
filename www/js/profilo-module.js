@@ -20,7 +20,7 @@ async function inizializzaApp() {
     mostraStatoUtente(sessione.email);
     aggiornaStatisticheLocali();
 
-    if (!navigator.onLine || sessione.offline) {
+    if (!navigator.onLine) {
         aggiornaInterfacciaSync(false);
         return;
     }

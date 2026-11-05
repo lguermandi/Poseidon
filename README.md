@@ -173,7 +173,15 @@ Il servizio di posizione è condiviso da entrambe le schede (`avviaPosizione` / 
 
 Se la distanza resta a zero mentre il tempo scorre, controllare: permesso di posizione concesso al browser o all'app, indicatore di precisione presente nella scheda Posizione, e che la scheda Navigazione mostri "● REC". Gli errori di segnale GPS sono non bloccanti: la registrazione continua.
 
+Se il GPS non risponde, la scheda Posizione mostra il motivo: permesso negato, localizzazione del sistema disattivata, o assenza di segnale. Nell'app Android il watcher nativo (`@capacitor-community/background-geolocation`) parte quando si apre la scheda Posizione o si avvia la registrazione, e chiede da solo il permesso di posizione; non attende più la richiesta di permesso notifiche, che poteva bloccarlo.
+
+Su Windows, se la posizione del browser è impostata su "Nega" (`HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location`), il GPS da desktop non funziona: va abilitata in Impostazioni → Privacy e sicurezza → Posizione.
+
 Senza connessione alcune funzioni non sono disponibili; quelle che dipendono dalla rete usano la coda di sincronizzazione o la cache locale.
+
+### Stato "Modalità Offline" nel profilo
+
+Nella pagina profilo lo stato è "Cloud Sincronizzato" o "Modalità Offline". Viene mostrato offline solo se il browser risulta offline oppure se la verifica della sessione col server fallisce (il messaggio è in console: `Cloud non raggiungibile...`). Una sessione con scadenza passata non causa più lo stato offline: il server viene interrogato comunque, e solo una risposta di sessione non valida chiede di nuovo il login.
 
 ## Problemi noti
 
@@ -181,6 +189,8 @@ Problemi ancora aperti, emersi dall'analisi del codice:
 
 1. **Icone Phosphor offline e senza SRI sui file secondari** – Lo script `index.js` (ora con SRI) inserisce a runtime i fogli di stile e i font da `cdn.jsdelivr.net` senza `integrity` e senza precaching in `sw.js`: offline le icone potrebbero non comparire. Soluzione possibile: self-hosting di CSS e font di Phosphor.
 2. **`home.html` non collegato** – È in cache ma nessuna pagina lo linka.
+3. **GPS nell'APK non ancora verificato** – Le modifiche al watcher nativo sono state testate solo nel browser con posizione simulata. Da confermare con un'APK ricompilata.
+4. **Verifica della sessione nell'APK** – Se il profilo mostra "Modalità Offline" con rete attiva, serve il messaggio di errore da `chrome://inspect`.
 
 Risolti: pagine `mappa.html`/`vhf.html` e `core_gps.js` nella cache offline, file di verifica Google spostato in `www/` (ora pubblicato da GitHub Pages), `main` in `package.json`, `console.log` di debug in `core_navigazione.js`, endpoint Apps Script centralizzato in `config.js`, versioni CDN fissate con SRI, font Inter locale, `NOME_CACHE` aggiornato automaticamente con `npm run cache:version`.
 
