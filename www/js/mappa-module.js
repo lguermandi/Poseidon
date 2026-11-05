@@ -94,6 +94,11 @@
             : 'assente';
     }
 
+    function mostraErroreCoordinate(testo) {
+        const coordinateEl = document.getElementById('posizione-coordinate');
+        if (coordinateEl) coordinateEl.textContent = testo;
+    }
+
     function gestisciErroreGPS(errore, avvioFallito = false) {
         const codiceErrore = `${errore?.code || ''} ${errore?.message || ''}`;
         const permessoNegato = errore?.code === 1 || /NOT_AUTHORIZED|permission denied|permesso negato/i.test(codiceErrore);
@@ -101,6 +106,7 @@
         if (!permessoNegato && !avvioFallito) {
             console.warn('GPS temporaneamente non disponibile:', errore);
             aggiornaStatoGPS(null);
+            if (!ultimaPosizioneNota) mostraErroreCoordinate('Nessun segnale GPS. Verifica che la localizzazione sia attiva nel sistema e nel browser.');
             return;
         }
 
@@ -110,6 +116,7 @@
         const messaggio = permessoNegato
             ? 'Permesso o servizio di posizione non disponibile. Verifica le impostazioni GPS e riprova.'
             : `GPS non avviato: ${errore?.message || 'errore del servizio di localizzazione'}`;
+        mostraErroreCoordinate(messaggio);
         if (inNavigazione) {
             fermaPerErrore(messaggio);
         } else {
@@ -125,6 +132,7 @@
 
         const coordinateEl = document.getElementById('posizione-coordinate');
         if (coordinateEl) coordinateEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
 
         if (!posizioneMarker) {
             posizioneMarker = L.circleMarker(punto, { radius: 7, color: '#ffffff', weight: 2, fillColor: '#38bdf8', fillOpacity: 1 }).addTo(map);
