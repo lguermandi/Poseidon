@@ -1,4 +1,4 @@
-const NOME_CACHE = 'nautica-app-534ae70d4d28';
+const NOME_CACHE = 'nautica-app-1a799c41d1b4';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
@@ -35,6 +35,9 @@ const FILE_DA_SALVARE = [
     'https://unpkg.com/@phosphor-icons/web@2.1.2/src/index.js',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+    'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',
+    'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js',
+    'https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js',
     'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
     'https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.js'
 ];

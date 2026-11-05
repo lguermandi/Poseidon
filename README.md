@@ -169,6 +169,8 @@ Il font Inter è servito localmente da `www/fonts/`, senza Google Fonts.
 - **Posizione**: mostra la posizione GPS, il marcatore, le coordinate e l'indicatore di precisione (`±N m`, con stato "assente" se il GPS non risponde). Il GPS è attivo mentre la scheda è aperta.
 - **Navigazione**: registra la traccia, calcola distanza e velocità e permette di pianificare rotte sulla mappa. Registrare avvia sempre il GPS, anche fuori da questa scheda.
 
+Il fondo mappa è vettoriale (MapLibre GL con lo stile OpenFreeMap, dati OpenStreetMap, senza chiave API) e mostra le etichette in italiano quando disponibili (`name:it`); se lo stile non si carica torna alle tile OpenStreetMap. Le librerie sono fissate con SRI in [mappa.html](./www/moduli/mappa.html) e incluse nella cache offline di [sw.js](./www/sw.js); lo stile invece va scaricato, quindi la mappa vettoriale richiede connessione. Il livello nautico (OpenSeaMap) è sopra la base.
+
 Il servizio di posizione è condiviso da entrambe le schede (`avviaPosizione` / `fermaPosizione` in [mappa-module.js](./www/js/mappa-module.js)). Tutti i punti vengono accettati e mostrati con la loro precisione; la distanza è calcolata da [core_gps.js](./www/js/core_gps.js) con soglia di 2 m, quindi a bassa precisione può comparire qualche metro di rumore.
 
 Se la distanza resta a zero mentre il tempo scorre, controllare: permesso di posizione concesso al browser o all'app, indicatore di precisione presente nella scheda Posizione, e che la scheda Navigazione mostri "● REC". Gli errori di segnale GPS sono non bloccanti: la registrazione continua.

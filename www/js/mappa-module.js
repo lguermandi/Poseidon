@@ -1,4 +1,32 @@
 (function () {
+    // Stile vettoriale OpenFreeMap (dati OpenStreetMap, senza chiave API), con etichette in italiano
+    const STILE_MAPPA_ITALIANO = 'https://tiles.openfreemap.org/styles/liberty';
+
+    // Usa il nome italiano quando presente, altrimenti l'etichetta originale dello stile
+    function italianizzaStile(stile) {
+        stile.layers.forEach(layer => {
+            const testo = layer.layout && layer.layout['text-field'];
+            if (testo === undefined) return;
+            layer.layout['text-field'] = ['coalesce', ['get', 'name:it'], testo];
+        });
+        return stile;
+    }
+
+    function caricaBaseMappa(map) {
+        return fetch(STILE_MAPPA_ITALIANO)
+            .then(risposta => {
+                if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
+                return risposta.json();
+            })
+            .then(stile => {
+                L.maplibreGL({ style: italianizzaStile(stile) }).addTo(map);
+            })
+            .catch(errore => {
+                console.warn('Stile italiano non disponibile, uso OpenStreetMap:', errore);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+            });
+    }
+
     // Inizializzazione mappa con preferCanvas attivato per stampe PDF perfette (allinea i tratteggi)
     const map = L.map('mappa-container', {
         zoomControl: false,
@@ -6,8 +34,10 @@
     }).setView([44.006, 12.657], 13);
     setTimeout(() => { map.invalidateSize(); }, 200);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
-    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    // Base vettoriale con nomi in italiano; se lo stile non si carica torna alle tile OSM.
+    caricaBaseMappa(map).finally(() => {
+        L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    });
 
     let arrayWaypoint = [];
     let lineaRotta = null;
