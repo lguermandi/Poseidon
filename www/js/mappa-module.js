@@ -162,7 +162,7 @@
             map.setView(punto, 16);
         }
 
-        if (inNavigazione) elaboraCoordinate(lat, lng, speedMs, timestamp);
+        if (inNavigazione) elaboraCoordinate(lat, lng, speedMs, timestamp, precisione);
     }
 
     function avviaGPSBrowser(sessione) {
@@ -760,21 +760,25 @@
         aggiornaServizioPosizione();
     };
 
-    function elaboraCoordinate(lat, lng, speedMs, timestamp) {
+    function elaboraCoordinate(lat, lng, speedMs, timestamp, precisione) {
         const adesso = timestamp ? timestamp : Date.now();
         const nuovoPunto = L.latLng(lat, lng);
-        const metriche = metricheGPS.update(lat, lng, speedMs, adesso);
+        const metriche = metricheGPS.update(lat, lng, speedMs, adesso, precisione);
         const velocitaCalcolata = metriche.speedKnots;
         liveDistanzaNm += metriche.distanceNm;
 
         // Aggiorna variabili globali e UI
         ultimoPuntoRilevato = nuovoPunto;
-        gpsTrack.push(nuovoPunto);
-        liveRotta.addLatLng(nuovoPunto);
+        const registraPunto = puntiTracciato.length === 0 || metriche.distanceNm > 0;
+        if (registraPunto) {
+            gpsTrack.push(nuovoPunto);
+            liveRotta.addLatLng(nuovoPunto);
+            const timeISO = new Date(adesso).toISOString();
+            puntiTracciato.push({ lat: lat, lon: lng, vel: velocitaCalcolata, time: timeISO });
+        }
         map.panTo(nuovoPunto, { animate: false });
 
         const timeISO = new Date(adesso).toISOString();
-        puntiTracciato.push({ lat: lat, lon: lng, vel: velocitaCalcolata, time: timeISO });
 
         // Salvataggio persistente per ripresa in caso di crash
         localStorage.setItem('navigazione_traccia_attiva', JSON.stringify({

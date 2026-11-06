@@ -227,50 +227,40 @@ async function sincronizzaStoricoCloud(sessione) {
 
 function caricaListaRotte() {
     const container = document.getElementById('lista-tracce');
-    const rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
+    const riepilogo = document.getElementById('riepilogo-rotte');
+    const rotte = leggiArrayLocale('navigazione_rotte');
 
     if (rotte.length === 0) {
+        riepilogo.textContent = '';
         container.innerHTML = '<p style="color: var(--testo-secondario); text-align:center;">Nessuna rotta in archivio.</p>';
         return;
     }
 
-    container.innerHTML = rotte.reverse().map(rotta => `
-        <div class="track-item">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+    const miglia = rotte.reduce((totale, rotta) => totale + (Number(rotta.distanza) || 0), 0);
+    riepilogo.textContent = `${rotte.length} ${rotte.length === 1 ? 'rotta' : 'rotte'} · ${miglia.toFixed(1)} Nm totali`;
+
+    container.innerHTML = rotte.slice().reverse().map(rotta => `
+        <a class="track-item rotta-card" href="rotta.html?id=${encodeURIComponent(rotta.id)}">
+            <div class="rotta-card-testa">
                 <div>
-                    <div style="font-weight: 700; color: var(--testo-primario);">${rotta.nome || 'Navigazione'}</div>
-                    <div style="font-size: 0.75rem; color: var(--testo-secondario);">${rotta.data}</div>
+                    <div class="rotta-card-nome">${escapeHtml(rotta.nome || 'Navigazione')}</div>
+                    <div class="rotta-card-data">${escapeHtml(rotta.data || '')}${rotta.imbarcazione ? ` · ${escapeHtml(rotta.imbarcazione)}` : ''}</div>
                 </div>
-                <button class="btn-action" style="width: auto; padding: 5px 10px; font-size: 0.7rem;" onclick="scaricaGPX(${rotta.id})">
-                    GPX
-                </button>
+                <i class="ph ph-caret-right rotta-card-freccia"></i>
             </div>
-        </div>
+            <div class="rotta-card-metriche">
+                <span><strong>${(Number(rotta.distanza) || 0).toFixed(2)}</strong> Nm</span>
+                <span><strong>${escapeHtml(rotta.durata || 'N/D')}</strong> durata</span>
+                <span><strong>${(rotta.punti || []).length}</strong> punti</span>
+            </div>
+        </a>
     `).join('');
 }
 
-// --- FUNZIONI DI EXPORT ---
-function scaricaGPX(id) {
-    const rotte = JSON.parse(localStorage.getItem('navigazione_rotte') || "[]");
-    const rotta = rotte.find(r => r.id === id);
-    if (!rotta) return;
-
-    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Poseidon">
-    <trk><name>${rotta.nome}</name><trkseg>`;
-
-    rotta.punti.forEach(p => {
-        gpx += `\n<trkpt lat="${p.lat}" lon="${p.lon}"><time>${p.time}</time></trkpt>`;
-    });
-
-    gpx += `\n</trkseg></trk></gpx>`;
-
-    const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${rotta.nome.replace(/\s+/g, '_')}.gpx`;
-    a.click();
+function escapeHtml(valore) {
+    return String(valore ?? '').replace(/[&<>'"]/g, (carattere) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[carattere]));
 }
 
 function esportaBackupCompleto() {

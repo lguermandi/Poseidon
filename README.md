@@ -30,6 +30,7 @@ Moduli principali:
 
 - **Quiz** ([quiz-module.js](./www/js/quiz-module.js)): domande scaricate da un endpoint Google Apps Script e salvate in locale per l'uso offline.
 - **Mappa e navigazione** ([mappa.html](./www/moduli/mappa.html) + [mappa-module.js](./www/js/mappa-module.js)): mappa Leaflet con OpenStreetMap e OpenSeaMap, posizione GPS (su Android tramite BackgroundGeolocation), registrazione tracce, rotte esportabili in GPX, distanza e velocità calcolate con [core_gps.js](./www/js/core_gps.js), previsioni marine e vento (Open-Meteo).
+- **Dettaglio rotta** ([rotta.html](./www/moduli/rotta.html) + [rotta-module.js](./www/js/rotta-module.js)): aperta toccando una rotta nell'archivio del profilo. Mostra statistiche (distanza, durata, velocità media e massima), mappa del percorso con cursore sincronizzato, grafico della velocità interattivo, tratte per ogni miglio nautico (con la più veloce evidenziata) ed esportazione GPX.
 - **Manovre vela** ([vela.html](./www/moduli/vela.html) + [core_vela.js](./www/js/core_vela.js)): calcolo vento vero, VMG e velocità target da polare.
 - **Maree** ([maree.html](./www/moduli/maree.html)), **Meteo** ([meteo.html](./www/moduli/meteo.html)), **Fari** ([fari.html](./www/moduli/fari.html)), **Motore** ([motore.html](./www/moduli/motore.html)), **Ancoraggio** ([ancora.html](./www/moduli/ancora.html)), **Sicurezza** ([sicurezza.html](./www/moduli/sicurezza.html)), **VHF** ([vhf.html](./www/moduli/vhf.html)).
 - **Carteggio** ([carteggio.html](./www/moduli/carteggio.html)): esercitazioni di carteggio con Leaflet ed esportazione PDF (html2pdf).
@@ -56,8 +57,9 @@ Simulatore_Navigazione/
 │   │   ├── core_gps.js           # GpsTrackMetrics: distanza e velocità da GPS
 │   │   ├── core_vela.js          # LogicaVela: vento vero, VMG, polare
 │   │   ├── mappa-module.js       # Logica di mappa e navigazione
-│   │   ├── profilo-module.js     # Profilo, sessione, backup, sincronizzazione
-│   │   └── quiz-module.js        # Quiz e storico
+│   │   ├── profilo-module.js     # Profilo, sessione, backup, sincronizzazione, archivio rotte
+│   │   ├── quiz-module.js        # Quiz e storico
+│   │   └── rotta-module.js       # Dettaglio di una rotta salvata
 │   └── moduli/                   # Pagine caricate nell'iframe o negli hub
 ├── tests/
 │   └── core.test.js              # Test unitari dei moduli core (node:test)

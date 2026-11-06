@@ -30,15 +30,27 @@ test('calcola VMG e vento vero', () => {
     assert.deepEqual(LogicaVela.calcolaVentoVero(0, 0, 10), { tws: 10, twa: 0 });
 });
 
-test('accumula piccoli spostamenti GPS e calcola la velocita senza dato GPS', () => {
+test('riduce i punti GPS ravvicinati e calcola la velocita sullo spostamento reale', () => {
     const metriche = new GpsTrackMetrics();
     const metriPerGrado = 111320;
 
     assert.deepEqual(metriche.update(0, 0, null, 1000), { distanceNm: 0, speedKnots: 0 });
-    assert.equal(metriche.update(1 / metriPerGrado, 0, null, 2000).distanceNm, 0);
-    assert.equal(metriche.update(2 / metriPerGrado, 0, null, 3000).distanceNm, 0);
+    assert.deepEqual(metriche.update(2 / metriPerGrado, 0, 15, 2000), { distanceNm: 0, speedKnots: 0 });
+    assert.deepEqual(metriche.update(4 / metriPerGrado, 0, 15, 3000), { distanceNm: 0, speedKnots: 0 });
 
-    const aggiornamento = metriche.update(4 / metriPerGrado, 0, null, 5000);
-    assert.ok(aggiornamento.distanceNm > 0.0021 && aggiornamento.distanceNm < 0.0022);
-    assert.ok(aggiornamento.speedKnots > 1.8 && aggiornamento.speedKnots < 2.1);
+    const aggiornamento = metriche.update(6 / metriPerGrado, 0, 15, 4000);
+    assert.ok(aggiornamento.distanceNm > 0.0032 && aggiornamento.distanceNm < 0.0033);
+    assert.ok(aggiornamento.speedKnots > 3.8 && aggiornamento.speedKnots < 4);
+});
+
+test('usa la precisione GPS per scartare gli spostamenti entro il margine di errore', () => {
+    const metriche = new GpsTrackMetrics();
+    const metriPerGrado = 111320;
+
+    metriche.update(0, 0, null, 1000, 3);
+    assert.equal(metriche.update(8 / metriPerGrado, 0, 20, 2000, 10).distanceNm, 0);
+
+    const aggiornamento = metriche.update(12 / metriPerGrado, 0, 20, 5000, 10);
+    assert.ok(aggiornamento.distanceNm > 0.0064 && aggiornamento.distanceNm < 0.0066);
+    assert.ok(aggiornamento.speedKnots > 5.8 && aggiornamento.speedKnots < 6);
 });

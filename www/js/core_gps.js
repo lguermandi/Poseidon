@@ -1,24 +1,24 @@
 class GpsTrackMetrics {
-    constructor(distanceThresholdMeters = 2) {
+    constructor(distanceThresholdMeters = 5) {
         this.distanceThresholdMeters = distanceThresholdMeters;
         this.referencePoint = null;
         this.referenceTime = null;
+        this.referenceAccuracyMeters = 0;
     }
 
-    reset(latitude = null, longitude = null, timestamp = null) {
+    reset(latitude = null, longitude = null, timestamp = null, accuracyMeters = 0) {
         this.referencePoint = Number.isFinite(latitude) && Number.isFinite(longitude)
             ? { latitude, longitude }
             : null;
         this.referenceTime = this.referencePoint ? this.getTimestamp(timestamp) : null;
+        this.referenceAccuracyMeters = this.referencePoint ? this.getAccuracy(accuracyMeters) : 0;
     }
 
-    update(latitude, longitude, speedMs, timestamp) {
+    update(latitude, longitude, speedMs, timestamp, accuracyMeters = 0) {
         const point = { latitude, longitude };
         const time = this.getTimestamp(timestamp);
         let distanceNm = 0;
-        let speedKnots = Number.isFinite(speedMs) && speedMs > 0
-            ? speedMs * 1.94384
-            : 0;
+        let speedKnots = 0;
 
         if (!this.referencePoint) {
             this.referencePoint = point;
@@ -27,19 +27,30 @@ class GpsTrackMetrics {
         }
 
         const distanceMeters = this.distanceBetween(this.referencePoint, point);
-        if (distanceMeters > this.distanceThresholdMeters) {
+        const accuracy = this.getAccuracy(accuracyMeters);
+        const sogliaDistanza = Math.max(
+            this.distanceThresholdMeters,
+            accuracy,
+            this.referenceAccuracyMeters
+        );
+        if (distanceMeters > sogliaDistanza) {
             distanceNm = distanceMeters / 1852;
 
-            if (speedKnots === 0 && time > this.referenceTime) {
+            if (time > this.referenceTime) {
                 const elapsedSeconds = (time - this.referenceTime) / 1000;
                 speedKnots = (distanceMeters / elapsedSeconds) * 1.94384;
             }
 
             this.referencePoint = point;
             this.referenceTime = time;
+            this.referenceAccuracyMeters = accuracy;
         }
 
         return { distanceNm, speedKnots };
+    }
+
+    getAccuracy(accuracyMeters) {
+        return Number.isFinite(accuracyMeters) && accuracyMeters > 0 ? accuracyMeters : 0;
     }
 
     getTimestamp(timestamp) {

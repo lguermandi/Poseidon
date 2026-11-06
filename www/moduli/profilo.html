@@ -220,6 +220,56 @@
             transform: scale(0.98);
         }
 
+        a.rotta-card {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .rotta-card-testa {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rotta-card-nome {
+            font-weight: 700;
+            color: var(--testo-primario);
+        }
+
+        .rotta-card-data {
+            font-size: 0.75rem;
+            color: var(--testo-secondario);
+            margin-top: 2px;
+        }
+
+        .rotta-card-freccia {
+            font-size: 1.1rem;
+            color: var(--accento-ciano);
+        }
+
+        .rotta-card-metriche {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: var(--testo-secondario);
+        }
+
+        .rotta-card-metriche strong {
+            color: var(--testo-primario);
+            font-size: 0.85rem;
+        }
+
+        .riepilogo-rotte {
+            font-size: 0.8rem;
+            color: var(--testo-secondario);
+            margin: -4px 0 12px;
+        }
+
         .sync-indicator {
             font-size: 0.8rem;
             display: flex;
@@ -331,6 +381,7 @@
             <!-- Archivio Rotte -->
             <div class="panel profile-archive">
                 <h3>Archivio GPS (GPX)</h3>
+                <div id="riepilogo-rotte" class="riepilogo-rotte"></div>
                 <div id="lista-tracce">
                     <!-- Dinamico -->
                 </div>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" integrity="sha384-MinO0mNliZ3vwppuPOUnGa+iq619pfMhLVUXfC4LHwSCvF9H+6P/KO4Q7qBOYV5V" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js" integrity="sha384-tXYNKOHx4T02jMP7YYCtBxPIv1B5gaA5mcVPBzqMp6d7VzWzxJgI2aWF/nJLrQdS" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.2/src/index.js" integrity="sha384-J7cw2fbG1T4C5MirTVUxsZGaMfw2m0XsCgOQEqUvB1OF9VIsHWuZF1GmyVRzs7eu" crossorigin="anonymous"></script>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body.modulo-scrollabile {
+            display: block;
+            height: 100%;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior-y: contain;
+        }
+
+        .rotta-pagina {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (min-width: 900px) {
+            .rotta-pagina {
+                padding: 34px 36px 48px;
+            }
+        }
+
+        .rotta-topbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .rotta-topbar-titolo {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rotta-topbar h1 {
+            margin: 0;
+            font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+            letter-spacing: -0.02em;
+            overflow-wrap: anywhere;
+        }
+
+        .rotta-sottotitolo {
+            font-size: 0.8rem;
+            color: var(--testo-secondario);
+            margin-top: 4px;
+        }
+
+        .rotta-icona-btn {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            border-radius: 14px;
+            border: 1px solid var(--bordo-soft);
+            background: var(--pannello);
+            color: var(--testo-primario);
+            display: grid;
+            place-items: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+
+        .rotta-icona-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .rotta-etichetta {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--testo-secondario);
+        }
+
+        .rotta-valore {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            color: var(--testo-primario);
+        }
+
+        .rotta-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            gap: 20px;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), var(--pannello) 60%);
+        }
+
+        .rotta-hero-distanza {
+            font-size: clamp(2.6rem, 8vw, 3.8rem);
+            font-weight: 800;
+            line-height: 1;
+            color: var(--accento-ciano);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .rotta-hero-distanza small {
+            font-size: 1rem;
+            color: var(--testo-secondario);
+            margin-left: 6px;
+        }
+
+        .rotta-hero-laterale {
+            display: grid;
+            gap: 14px;
+        }
+
+        .rotta-metriche {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .rotta-metrica {
+            background: var(--pannello);
+            border: 1px solid var(--bordo-soft);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .rotta-metrica .rotta-valore {
+            font-size: 1.1rem;
+            overflow-wrap: anywhere;
+        }
+
+        .rotta-sezione h2 {
+            margin: 0 0 14px;
+            font-size: 1rem;
+        }
+
+        .rotta-sezione h2::after {
+            content: '';
+            display: block;
+            width: 34px;
+            height: 3px;
+            margin-top: 9px;
+            border-radius: 4px;
+            background: var(--accento-ciano);
+        }
+
+        .rotta-mappa {
+            height: 340px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--bordo-soft);
+            background: #0b1626;
+        }
+
+        .rotta-grafico {
+            position: relative;
+            height: 200px;
+            touch-action: pan-y;
+            cursor: crosshair;
+        }
+
+        .rotta-grafico svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .rotta-grafico .linea {
+            fill: none;
+            stroke: #38bdf8;
+            stroke-width: 2;
+            vector-effect: non-scaling-stroke;
+            stroke-linejoin: round;
+        }
+
+        .rotta-cursore {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--testo-primario);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .rotta-lettura {
+            font-size: 0.85rem;
+            color: var(--testo-secondario);
+            min-height: 1.2em;
+            margin: 10px 0 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .rotta-tratte {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .rotta-tratta {
+            display: grid;
+            grid-template-columns: 56px minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--bordo-soft);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .rotta-tratta:last-child {
+            border-bottom: none;
+        }
+
+        .rotta-tratta-numero {
+            font-weight: 700;
+            color: var(--testo-secondario);
+        }
+
+        .rotta-tratta-barra {
+            height: 6px;
+            border-radius: 6px;
+            background: var(--bg-profondo);
+            overflow: hidden;
+        }
+
+        .rotta-tratta-barra span {
+            display: block;
+            height: 100%;
+            border-radius: 6px;
+            background: var(--accento-ciano);
+        }
+
+        .rotta-tratta.piu-veloce .rotta-tratta-numero,
+        .rotta-tratta.piu-veloce .rotta-tratta-valori strong {
+            color: var(--accento-verde);
+        }
+
+        .rotta-tratta.piu-veloce .rotta-tratta-barra span {
+            background: var(--accento-verde);
+        }
+
+        .rotta-tratta-valori {
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--testo-secondario);
+            white-space: nowrap;
+        }
+
+        .rotta-tratta-valori strong {
+            color: var(--testo-primario);
+        }
+
+        .rotta-nota {
+            font-size: 0.75rem;
+            color: var(--testo-secondario);
+            margin: 12px 0 0;
+        }
+
+        .rotta-errore {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        @media (max-width: 620px) {
+            .rotta-hero {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .rotta-mappa {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body class="modulo-scrollabile">
+    <main class="rotta-pagina">
+        <header class="rotta-topbar">
+            <button class="rotta-icona-btn" onclick="location.href='profilo.html'" aria-label="Torna allo storico">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <div class="rotta-topbar-titolo">
+                <h1 id="rotta-nome">Rotta</h1>
+                <div class="rotta-sottotitolo" id="rotta-sottotitolo"></div>
+            </div>
+            <button class="rotta-icona-btn" id="btn-esporta-gpx" aria-label="Esporta GPX" title="Esporta GPX" disabled>
+                <i class="ph ph-export"></i>
+            </button>
+        </header>
+
+        <section id="rotta-errore" class="panel rotta-errore" hidden>
+            <p id="rotta-errore-testo"></p>
+            <button class="btn-action" style="margin-top: 16px;" onclick="location.href='profilo.html'">Torna allo storico</button>
+        </section>
+
+        <div id="rotta-contenuto" hidden>
+            <section class="panel rotta-hero">
+                <div>
+                    <span class="rotta-etichetta">Distanza percorsa</span>
+                    <div class="rotta-hero-distanza"><span id="r-distanza">0.00</span><small>Nm</small></div>
+                </div>
+                <div class="rotta-hero-laterale">
+                    <div>
+                        <span class="rotta-etichetta"><i class="ph ph-timer"></i> Durata</span>
+                        <span class="rotta-valore" id="r-durata">--</span>
+                    </div>
+                    <div>
+                        <span class="rotta-etichetta"><i class="ph ph-gauge"></i> Velocità media</span>
+                        <span class="rotta-valore"><span id="r-vel-media">--</span> kn</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rotta-metriche">
+                <div class="rotta-metrica">
+                    <span class="rotta-etichetta">Velocità massima</span>
+                    <span class="rotta-valore"><span id="r-vel-max">--</span> kn</span>
+                </div>
+                <div class="rotta-metrica">
+                    <span class="rotta-etichetta">Partenza</span>
+                    <span class="rotta-valore" id="r-partenza">--</span>
+                </div>
+                <div class="rotta-metrica">
+                    <span class="rotta-etichetta">Arrivo</span>
+                    <span class="rotta-valore" id="r-arrivo">--</span>
+                </div>
+                <div class="rotta-metrica">
+                    <span class="rotta-etichetta">Punti GPS</span>
+                    <span class="rotta-valore" id="r-punti">--</span>
+                </div>
+                <div class="rotta-metrica">
+                    <span class="rotta-etichetta">Imbarcazione</span>
+                    <span class="rotta-valore" id="r-barca">--</span>
+                </div>
+            </section>
+
+            <p id="rotta-stato-tracciato" class="panel" style="text-align: center; color: var(--testo-secondario);" hidden>
+                Dati insufficienti per mostrare il tracciato: servono almeno due punti GPS.
+            </p>
+
+            <section class="panel rotta-sezione" id="sezione-mappa">
+                <h2>Percorso</h2>
+                <div id="rotta-mappa" class="rotta-mappa"></div>
+            </section>
+
+            <section class="panel rotta-sezione" id="sezione-velocita">
+                <h2>Velocità</h2>
+                <div class="rotta-grafico" id="rotta-grafico">
+                    <svg viewBox="0 0 600 200" preserveAspectRatio="none" aria-label="Grafico della velocità nel tempo">
+                        <defs>
+                            <linearGradient id="gradiente-velocita" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#0ea5e9" stop-opacity="0.45" />
+                                <stop offset="1" stop-color="#0ea5e9" stop-opacity="0" />
+                            </linearGradient>
+                        </defs>
+                        <path id="area-velocita" fill="url(#gradiente-velocita)" />
+                        <path id="linea-velocita" class="linea" />
+                    </svg>
+                    <div class="rotta-cursore" id="cursore-grafico"></div>
+                </div>
+                <p class="rotta-lettura" id="rotta-lettura">Scorri il grafico per vedere velocità e posizione sulla mappa.</p>
+            </section>
+
+            <section class="panel rotta-sezione" id="sezione-tratte">
+                <h2>Tratte per miglio</h2>
+                <ul class="rotta-tratte" id="rotta-tratte"></ul>
+                <p class="rotta-nota">Tempi e velocità delle tratte complete da 1 Nm, calcolati sui punti GPS registrati.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="../js/rotta-module.js"></script>
+</body>
+
+</html>
