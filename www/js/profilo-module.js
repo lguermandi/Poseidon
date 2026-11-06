@@ -263,16 +263,44 @@ function escapeHtml(valore) {
     }[carattere]));
 }
 
-function esportaBackupCompleto() {
-    const chiavi = ['profilo_qualifica', 'profilo_barca', 'navigazione_rotte', 'nave_logbook', 'nave_storico_quiz'];
-    const backup = {};
-    chiavi.forEach(k => backup[k] = localStorage.getItem(k));
+const CHIAVI_BACKUP = ['profilo_qualifica', 'profilo_barca', 'profilo_base', 'navigazione_rotte', 'nave_logbook', 'nave_storico_quiz'];
 
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `Poseidon_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
+async function esportaBackupCompleto() {
+    const backup = {};
+    CHIAVI_BACKUP.forEach(k => backup[k] = localStorage.getItem(k));
+
+    const nome = `Poseidon_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    const file = new File([JSON.stringify(backup, null, 2)], nome, { type: 'application/json' });
+    await salvaFileEsportato(file);
+}
+
+async function importaBackupCompleto(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+
+    let backup;
+    try {
+        backup = JSON.parse(await file.text());
+    } catch (errore) {
+        alert('File di backup non valido: impossibile leggere il JSON.');
+        return;
+    }
+    if (!backup || typeof backup !== 'object' || Array.isArray(backup)) {
+        alert('File di backup non valido.');
+        return;
+    }
+    if (!confirm('Il backup sostituirà i dati locali attuali di queste sezioni. Continuare?')) return;
+
+    CHIAVI_BACKUP.forEach(k => {
+        if (!(k in backup)) return;
+        const valore = backup[k];
+        if (valore === null) localStorage.removeItem(k);
+        else if (typeof valore === 'string') localStorage.setItem(k, valore);
+    });
+    alert('Backup importato correttamente.');
+    location.reload();
 }
 
 // --- FEEDBACK UI ---

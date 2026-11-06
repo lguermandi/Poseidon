@@ -152,7 +152,7 @@ Chiavi principali usate in `localStorage` (alcune con fallback su `sessionStorag
 | `db_quiz` | Domande quiz in cache | quiz |
 | `profilo_qualifica`, `profilo_barca` | Dati del profilo | profilo, mappa |
 
-Il backup del profilo esporta queste chiavi; il ripristino le reimporta.
+Il backup (sezione "Gestione Dati" del profilo) esporta queste chiavi, insieme a `profilo_base`, e funziona anche senza account; l'importazione sostituisce solo le chiavi presenti nel file.
 
 ## Servizi esterni
 

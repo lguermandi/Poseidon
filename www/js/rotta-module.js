@@ -272,7 +272,7 @@ function disegnaTratteMiglio() {
     `).join('');
 }
 
-function esportaGpxRotta() {
+async function esportaGpxRotta() {
     if (puntiRotta.length < 2) return;
 
     const trkpt = puntiRotta.map((punto) =>
@@ -281,13 +281,8 @@ function esportaGpxRotta() {
     const nome = rottaCorrente.nome || 'Rotta Poseidon';
     const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Poseidon" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXmlDettaglio(nome)}</name><trkseg>${trkpt}\n    </trkseg></trk></gpx>`;
 
-    const blob = new Blob([gpx], { type: 'application/gpx+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${nome.replace(/[^\w-]+/g, '_')}.gpx`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const file = new File([gpx], `${nome.replace(/[^\w-]+/g, '_')}.gpx`, { type: 'application/gpx+xml;charset=utf-8' });
+    await salvaFileEsportato(file);
 }
 
 function mostraErroreDettaglio(messaggio) {

@@ -316,6 +316,20 @@
             <p id="auth-status" style="text-align: center; font-size: 0.85rem; margin-top: 15px;"></p>
         </div>
 
+        <!-- GESTIONE DATI: disponibile anche senza account, i dati sono locali -->
+        <div class="panel">
+            <h3 class="profile-panel-title">Gestione Dati</h3>
+            <div class="profile-data-actions">
+                <button class="btn-action" style="background: #3b82f6;" onclick="esportaBackupCompleto()">💾
+                    Esporta Backup .JSON</button>
+                <button class="btn-action"
+                    style="background: var(--bg-profondo); border: 1px solid var(--bordo-soft);"
+                    onclick="document.getElementById('file-import-completo').click()">📥 Importa Backup</button>
+                <input type="file" id="file-import-completo" accept="application/json,.json" style="display:none"
+                    onchange="importaBackupCompleto(event)">
+            </div>
+        </div>
+
         <!-- DASHBOARD UTENTE LOGGATO -->
         <div id="profilo-container" class="profile-content" style="display: none;">
 
@@ -361,20 +375,10 @@
                     <p id="stato-profilo" style="font-size: 0.75rem; color: var(--testo-secondario);"></p>
                 </div>
 
-                <!-- Backup e Dati -->
                 <div class="panel">
-                    <h3 class="profile-panel-title">Gestione Dati</h3>
-                    <div class="profile-data-actions">
-                        <button class="btn-action" style="background: #3b82f6;" onclick="esportaBackupCompleto()">💾
-                            Esporta Backup .JSON</button>
-                        <button class="btn-action"
-                            style="background: var(--bg-profondo); border: 1px solid var(--bordo-soft);"
-                            onclick="document.getElementById('file-import-completo').click()">📥 Importa Backup</button>
-                        <input type="file" id="file-import-completo" style="display:none"
-                            onchange="importaBackupCompleto(event)">
-                        <button class="btn-action" style="background: var(--accento-rosso); margin-top: 10px;"
-                            onclick="esciAccount()">Disconnetti</button>
-                    </div>
+                    <h3 class="profile-panel-title">Sessione</h3>
+                    <button class="btn-action" style="background: var(--accento-rosso);"
+                        onclick="esciAccount()">Disconnetti</button>
                 </div>
             </div>
 
@@ -390,6 +394,7 @@
     </main>
 
     <script src="../js/config.js"></script>
+    <script src="../js/esportazione.js"></script>
     <script src="../js/profilo-module.js"></script>
 </body>
 
