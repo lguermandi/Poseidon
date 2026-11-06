@@ -10,7 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function inizializzaApp() {
-    window.addEventListener('online', () => aggiornaInterfacciaSync(true));
+    window.addEventListener('online', () => {
+        aggiornaInterfacciaSync(true);
+        const sessione = leggiSessione();
+        if (sessione) sincronizzaStoricoCloud(sessione);
+    });
     window.addEventListener('offline', () => aggiornaInterfacciaSync(false));
     aggiornaInterfacciaSync(navigator.onLine);
 
@@ -35,6 +39,7 @@ async function inizializzaApp() {
             sessione.email = email;
             localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
             mostraStatoUtente(email);
+            await sincronizzaStoricoCloud(sessione);
         } else if (/session|token|autorizz/i.test(risultato.messaggio || risultato.errore || '')) {
             cancellaSessione();
             document.getElementById('form-container').style.display = 'block';
@@ -123,6 +128,7 @@ async function effettuaAccesso() {
         salvaSessione(email, risultato.token, risultato.scadenza);
         mostraStatoUtente(email);
         aggiornaStatisticheLocali();
+        await sincronizzaStoricoCloud({ email, token: risultato.token });
     } catch (errore) {
         status.style.color = '#ef4444';
         status.textContent = errore.name === 'AbortError'
@@ -166,8 +172,8 @@ function mostraStatoUtente(email) {
 
 // --- STATISTICHE E ROTTE ---
 function aggiornaStatisticheLocali() {
-    const logbook = JSON.parse(localStorage.getItem('nave_logbook') || "[]");
-    const quiz = JSON.parse(localStorage.getItem('nave_storico_quiz') || "[]");
+    const logbook = leggiArrayLocale('nave_logbook');
+    const quiz = leggiArrayLocale('nave_storico_quiz');
 
     document.getElementById('stat-logbook').textContent = logbook.length;
     document.getElementById('stat-quiz').textContent = quiz.length;
@@ -175,6 +181,48 @@ function aggiornaStatisticheLocali() {
     // Carica campi profilo
     document.getElementById('profilo-qualifica').value = localStorage.getItem('profilo_qualifica') || "";
     document.getElementById('profilo-barca').value = localStorage.getItem('profilo_barca') || "";
+}
+
+function leggiArrayLocale(chiave) {
+    try {
+        const dati = JSON.parse(localStorage.getItem(chiave) || '[]');
+        return Array.isArray(dati) ? dati : [];
+    } catch (errore) {
+        console.warn(`Dati locali non validi (${chiave}).`, errore);
+        return [];
+    }
+}
+
+async function sincronizzaStoricoCloud(sessione) {
+    if (!navigator.onLine || !sessione?.token || !sessione.email) return;
+
+    try {
+        const risultato = await richiestaAPI({
+            azione: 'carica_riepilogo',
+            email: sessione.email,
+            sessionToken: sessione.token
+        });
+        if (risultato.status !== 'successo') {
+            throw new Error(risultato.messaggio || 'Risposta non valida dal server.');
+        }
+
+        if (Array.isArray(risultato.logbook)) {
+            localStorage.setItem('nave_logbook', JSON.stringify(risultato.logbook));
+        }
+        if (Array.isArray(risultato.quiz)) {
+            localStorage.setItem('nave_storico_quiz', JSON.stringify(risultato.quiz));
+        }
+
+        aggiornaStatisticheLocali();
+        if (!Array.isArray(risultato.logbook) && Number.isFinite(Number(risultato.vociLogbook))) {
+            document.getElementById('stat-logbook').textContent = Number(risultato.vociLogbook);
+        }
+        if (!Array.isArray(risultato.quiz) && Number.isFinite(Number(risultato.quizSvolti))) {
+            document.getElementById('stat-quiz').textContent = Number(risultato.quizSvolti);
+        }
+    } catch (errore) {
+        console.warn('Impossibile caricare lo storico dal cloud; mantengo i dati locali.', errore);
+    }
 }
 
 function caricaListaRotte() {

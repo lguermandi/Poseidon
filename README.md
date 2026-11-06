@@ -145,8 +145,8 @@ Chiavi principali usate in `localStorage` (alcune con fallback su `sessionStorag
 | `poseidon_sync_queue` | Coda di invii da sincronizzare quando torna la rete | mappa |
 | `navigazione_traccia_attiva` | Traccia in registrazione | mappa |
 | `navigazione_rotte` | Rotte salvate | mappa, profilo |
-| `nave_logbook` | Voci del logbook | profilo |
-| `nave_storico_quiz` | Storico dei quiz | profilo |
+| `nave_logbook` | Voci del logbook, aggiornate dallo storico cloud quando il profilo è online | profilo, logbook |
+| `nave_storico_quiz` | Storico dei quiz, aggiornato dal cloud quando il profilo è online | profilo |
 | `db_quiz` | Domande quiz in cache | quiz |
 | `profilo_qualifica`, `profilo_barca` | Dati del profilo | profilo, mappa |
 
