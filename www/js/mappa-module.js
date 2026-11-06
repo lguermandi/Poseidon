@@ -46,6 +46,9 @@
     let bgWatcherId = null;
     let trackingSessionId = 0;
     let watchId = null;
+    let fallbackTimer = null;
+    let nativoAttivo = false;
+    const ATTESA_FALLBACK_MS = 15000;
     let startTime = null;
     let timerInterval = null;
     let gpsTrack = [];
@@ -162,33 +165,48 @@
         if (inNavigazione) elaboraCoordinate(lat, lng, speedMs, timestamp);
     }
 
+    function avviaGPSBrowser(sessione) {
+        if (!navigator.geolocation) {
+            throw new Error('Sensore GPS non supportato dal dispositivo.');
+        }
+        watchId = navigator.geolocation.watchPosition(
+            (posizione) => {
+                if (sessione !== posizioneSessione) return;
+                riceviPosizione(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp, posizione.coords.accuracy);
+            },
+            (errore) => {
+                if (sessione === posizioneSessione) gestisciErroreGPS(errore);
+            },
+            { enableHighAccuracy: true, maximumAge: 2000, timeout: 60000 }
+        );
+    }
+
     function avviaPosizione() {
         if (posizioneAttiva) return;
+
+        posizioneAttiva = true;
+        const sessione = ++posizioneSessione;
+        nativoAttivo = false;
 
         if (isNativo) {
             const backgroundGeolocation = window.Capacitor?.Plugins?.BackgroundGeolocation;
             if (!backgroundGeolocation?.addWatcher) {
+                posizioneAttiva = false;
                 throw new Error('Plugin BackgroundGeolocation non registrato nell’app.');
             }
-            posizioneAttiva = true;
-            const sessione = ++posizioneSessione;
             avviaWatcherNativo(backgroundGeolocation, sessione);
+            fallbackTimer = setTimeout(() => {
+                fallbackTimer = null;
+                if (sessione !== posizioneSessione || nativoAttivo) return;
+                console.warn('Plugin nativo senza posizioni: passo al GPS della WebView.');
+                try {
+                    avviaGPSBrowser(sessione);
+                } catch (errore) {
+                    gestisciErroreGPS(errore, true);
+                }
+            }, ATTESA_FALLBACK_MS);
         } else {
-            if (!navigator.geolocation) {
-                throw new Error('Sensore GPS non supportato dal dispositivo.');
-            }
-            posizioneAttiva = true;
-            const sessione = ++posizioneSessione;
-            watchId = navigator.geolocation.watchPosition(
-                (posizione) => {
-                    if (sessione !== posizioneSessione) return;
-                    riceviPosizione(posizione.coords.latitude, posizione.coords.longitude, posizione.coords.speed, posizione.timestamp, posizione.coords.accuracy);
-                },
-                (errore) => {
-                    if (sessione === posizioneSessione) gestisciErroreGPS(errore);
-                },
-                { enableHighAccuracy: true, maximumAge: 2000, timeout: 60000 }
-            );
+            avviaGPSBrowser(sessione);
         }
     }
 
@@ -206,6 +224,15 @@
                 if (error) {
                     gestisciErroreGPS(error);
                     return;
+                }
+                if (!nativoAttivo) {
+                    nativoAttivo = true;
+                    clearTimeout(fallbackTimer);
+                    fallbackTimer = null;
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                        watchId = null;
+                    }
                 }
                 riceviPosizione(location.latitude, location.longitude, location.speed, location.time, location.accuracy);
             });
@@ -230,6 +257,8 @@
     function fermaPosizione() {
         posizioneSessione += 1;
         posizioneAttiva = false;
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
         if (isNativo && bgWatcherId !== null) {
             window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }).catch(() => { });
             bgWatcherId = null;

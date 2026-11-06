@@ -3,7 +3,6 @@
   "appName": "Poseidon",
   "webDir": "www",
   "android": {
-    "useLegacyBridge": true,
-    "webContentsDebuggingEnabled": true
+    "useLegacyBridge": true
   }
 }
