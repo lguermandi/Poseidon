@@ -59,9 +59,127 @@
 
         .calendario-controlli {
             display: grid;
-            grid-template-columns: 1.4fr 1fr 1fr;
+            grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(120px, 1fr));
             gap: 12px;
             align-items: end;
+        }
+
+        .maree-page {
+            width: min(100%, 1120px);
+            margin: 0 auto;
+            padding: 28px 22px 40px;
+        }
+
+        .maree-header {
+            margin: 0 0 22px;
+        }
+
+        .maree-header h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 3vw, 2.25rem);
+        }
+
+        .maree-header .subtitle {
+            margin: 7px 0 0;
+            color: var(--testo-secondario);
+        }
+
+        .maree-panel {
+            padding: clamp(18px, 2.5vw, 28px);
+        }
+
+        .maree-panel h2,
+        .maree-panel h3 {
+            margin-top: 0;
+        }
+
+        .maree-panel-intro {
+            margin: -10px 0 20px;
+            color: var(--testo-secondario);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .maree-gps-action {
+            margin-bottom: 18px;
+        }
+
+        .maree-gps-action .maree-panel-intro {
+            margin: 8px 0 0;
+            text-align: center;
+        }
+
+        .maree-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .maree-layout.has-results {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .maree-layout > .panel {
+            min-width: 0;
+            margin-bottom: 0;
+        }
+
+        .maree-campi {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .maree-separatore {
+            border: 0;
+            border-top: 1px solid var(--bordo-soft);
+            margin: 22px 0;
+        }
+
+        .maree-risultati {
+            margin-top: 18px;
+        }
+
+        .maree-metriche {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .marea-metrica {
+            padding: 14px;
+            border: 1px solid var(--bordo-soft);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
+        .marea-metrica-label {
+            color: var(--testo-secondario);
+            font-size: 0.78rem;
+        }
+
+        .marea-metrica .dato-marea {
+            display: inline-block;
+            margin: 5px 4px 0 0;
+            font-size: 1.45rem;
+        }
+
+        .maree-chart {
+            padding: 12px;
+            margin-bottom: 18px;
+            border: 1px solid var(--bordo-soft);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.55);
+        }
+
+        .maree-chart canvas {
+            max-height: 250px;
+        }
+
+        .maree-panel .btn-action:disabled {
+            cursor: wait;
+            opacity: 0.7;
         }
 
         .calendario-azioni {
@@ -238,13 +356,37 @@
             margin: 8px 0 0;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 760px) {
+            .maree-layout,
+            .maree-layout.has-results {
+                grid-template-columns: 1fr;
+            }
+
             .calendario-controlli {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .calendario-controlli .input-group:first-child {
                 grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .maree-page {
+                padding: 22px 14px 32px;
+            }
+
+            .maree-campi {
+                gap: 10px;
+            }
+
+            .maree-metriche {
+                gap: 8px;
+            }
+
+            .marea-metrica {
+                padding: 10px 8px;
+                text-align: center;
             }
 
             .cella-giorno {
@@ -273,7 +415,17 @@
                 color: #0f172a;
             }
 
-            body>*:not(#calendario-stampa) {
+            .maree-page {
+                width: auto;
+                margin: 0;
+                padding: 0;
+            }
+
+            body>*:not(.maree-page) {
+                display: none !important;
+            }
+
+            .maree-page>*:not(#calendario-stampa) {
                 display: none !important;
             }
 
@@ -311,27 +463,29 @@
     </style>
 </head>
 
-<body>
+<body class="modulo-scrollabile">
+    <div class="maree-page">
+    <header class="maree-header">
+        <h1>Calcolatore Maree 🌊</h1>
+        <p class="subtitle">Previsioni del porto base e calcolo del tirante d'acqua</p>
+    </header>
 
-    <h1>Calcolatore Maree 🌊</h1>
-    <div class="subtitle">Analisi Grafica e Tirante d'Acqua</div>
-
-    <div class="panel" id="pannello-calendario">
+    <div class="panel maree-panel" id="pannello-calendario">
         <h3 style="color: #38bdf8;">Calendario mensile delle maree</h3>
-        <p style="color: #94a3b8; font-size: 0.85rem;">Scegli una località e un mese per ottenere le alte e basse maree
+        <p class="maree-panel-intro">Scegli una località e un mese per ottenere le alte e basse maree
             giorno per giorno.</p>
         <div class="calendario-controlli">
             <div class="input-group">
-                <label for="cal-localita">Località</label>
-                <input type="text" id="cal-localita" value="Ravenna" placeholder="Es. Ravenna">
+                <label for="cal-localita">Porto / località</label>
+                <input type="text" id="cal-localita" placeholder="Es. Riccione">
             </div>
             <div class="input-group">
                 <label for="cal-latitudine">Latitudine</label>
-                <input type="number" id="cal-latitudine" value="44.417" step="0.001" min="-90" max="90">
+                <input type="number" id="cal-latitudine" placeholder="Automatica" step="0.001" min="-90" max="90">
             </div>
             <div class="input-group">
                 <label for="cal-longitudine">Longitudine</label>
-                <input type="number" id="cal-longitudine" value="12.200" step="0.001" min="-180" max="180">
+                <input type="number" id="cal-longitudine" placeholder="Automatiche" step="0.001" min="-180" max="180">
             </div>
             <div class="input-group">
                 <label for="cal-mese">Mese</label>
@@ -367,80 +521,84 @@
             al livello marino previsto e possono differire dalle tavole ufficiali del porto.</p>
     </div>
 
-    <div class="panel">
+    <div class="maree-layout" id="maree-layout">
+    <section class="panel maree-panel">
+        <h3 style="color: #38bdf8;">Rilevamento maree</h3>
+        <p class="maree-panel-intro">Carica i livelli stimati per le prossime ore usando la posizione GPS.</p>
         <!-- Tasto Sincronizzazione API -->
-        <div style="text-align: center; margin-bottom: 25px;">
+        <div class="maree-gps-action">
             <button class="btn-action" id="btn-auto-maree"
-                style="background: #3b82f6; width: 100%; padding: 15px; font-size: 1.1rem;"
+                style="background: #3b82f6; width: 100%;"
                 onclick="rilevaMareeLocali()">
                 📍 Rileva Maree Locali via GPS
             </button>
-            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 8px;">Connessione ai database oceanografici
-                Open-Meteo</p>
+            <p class="maree-panel-intro">Dati marini Open-Meteo</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="maree-campi">
             <div class="input-group">
-                <label>Ora Bassa (BM)</label>
+                <label for="ora-bm">Ora bassa (BM)</label>
                 <input type="time" id="ora-bm" value="08:00">
             </div>
             <div class="input-group">
-                <label>Livello BM (m)</label>
+                <label for="livello-bm">Livello BM (m)</label>
                 <input type="number" id="livello-bm" value="0.4" step="0.1">
             </div>
             <div class="input-group">
-                <label>Ora Alta (AM)</label>
+                <label for="ora-am">Ora alta (AM)</label>
                 <input type="time" id="ora-am" value="14:00">
             </div>
             <div class="input-group">
-                <label>Livello AM (m)</label>
+                <label for="livello-am">Livello AM (m)</label>
                 <input type="number" id="livello-am" value="1.6" step="0.1">
             </div>
         </div>
 
-        <div style="border-top: 1px solid #334155; margin: 25px 0;"></div>
+        <hr class="maree-separatore">
         <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 15px;">Sicurezza: Tirante d'Acqua</h3>
 
         <div class="input-group">
-            <label>Profondità Carta (metri)</label>
+            <label for="prof-carta">Profondità carta (m)</label>
             <input type="number" id="prof-carta" value="0.5" step="0.1">
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="maree-campi">
             <div class="input-group">
-                <label>Pescaggio (metri)</label>
+                <label for="pescaggio">Pescaggio (m)</label>
                 <input type="number" id="pescaggio" value="0.97" step="0.01">
             </div>
             <div class="input-group">
-                <label>Ora di Passaggio</label>
+                <label for="ora-passaggio">Ora di passaggio</label>
                 <input type="time" id="ora-passaggio" value="11:00">
             </div>
         </div>
 
-        <button class="btn-action" style="margin-top: 15px; width: 100%;" onclick="calcolaMarea()">📊 Calcola Andamento
+        <button class="btn-action" style="margin-top: 18px; width: 100%;" onclick="calcolaMarea()">📊 Calcola andamento
             e Sicurezza</button>
-    </div>
+    </section>
 
     <!-- Risultati -->
-    <div class="panel hidden" id="pannello-risultati">
-        <h3 style="color: #38bdf8;">Analisi Marea</h3>
+    <section class="panel maree-panel maree-risultati hidden" id="pannello-risultati">
+        <h3 style="color: #38bdf8;">Analisi marea</h3>
 
         <!-- Grafico Sinusoidale -->
-        <div style="background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+        <div class="maree-chart">
             <canvas id="graficoMarea" height="150"></canvas>
         </div>
 
-        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-            <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">Ampiezza</span><br>
+        <div class="maree-metriche">
+            <div class="marea-metrica">
+                <span class="marea-metrica-label">Ampiezza</span>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-ampiezza">0.0</span> m
             </div>
-            <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">1/12</span><br>
+            <div class="marea-metrica">
+                <span class="marea-metrica-label">1/12</span>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-dodicesimo">0.0</span> m
             </div>
-            <div style="margin-bottom: 10px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">Durata</span><br>
+            <div class="marea-metrica">
+                <span class="marea-metrica-label">Durata</span>
                 <span class="dato-marea" style="color: #f8fafc;" id="res-durata">0</span> h
+            </section>
+            </div>
             </div>
         </div>
 
@@ -466,6 +624,24 @@
         function inizializzaMeseCalendario() {
             const oggi = new Date();
             document.getElementById('cal-mese').value = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, '0')}`;
+            const portoBase = localStorage.getItem('profilo_base')?.trim() || 'Riccione';
+            document.getElementById('cal-localita').value = portoBase;
+            document.getElementById('cal-localita').addEventListener('input', () => {
+                document.getElementById('cal-latitudine').value = '';
+                document.getElementById('cal-longitudine').value = '';
+            });
+        }
+
+        async function geocodificaLocalita(localita) {
+            const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(localita)}&count=1&language=it&format=json`;
+            const risposta = await fetch(url);
+            if (!risposta.ok) throw new Error(`Geocodifica non disponibile (HTTP ${risposta.status}).`);
+            const dati = await risposta.json();
+            const risultato = dati.results?.[0];
+            if (!risultato || !Number.isFinite(Number(risultato.latitude)) || !Number.isFinite(Number(risultato.longitude))) {
+                throw new Error(`Nessuna coordinata trovata per "${localita}".`);
+            }
+            return { latitudine: Number(risultato.latitude), longitudine: Number(risultato.longitude) };
         }
 
         function formattaEventoMarea(ora, livello) {
@@ -473,29 +649,41 @@
         }
 
         async function generaCalendarioMaree() {
-            const localita = document.getElementById('cal-localita').value.trim() || 'Località selezionata';
-            const latitudine = Number(document.getElementById('cal-latitudine').value);
-            const longitudine = Number(document.getElementById('cal-longitudine').value);
+            const localitaInput = document.getElementById('cal-localita');
+            const latitudineInput = document.getElementById('cal-latitudine');
+            const longitudineInput = document.getElementById('cal-longitudine');
+            const localita = localitaInput.value.trim() || 'Riccione';
             const mese = document.getElementById('cal-mese').value;
             const stato = document.getElementById('calendario-stato');
             const btn = document.getElementById('btn-calendario');
 
-            if (!mese || !Number.isFinite(latitudine) || !Number.isFinite(longitudine) || latitudine < -90 || latitudine > 90 || longitudine < -180 || longitudine > 180) {
-                stato.textContent = 'Inserisci località, coordinate e mese validi.';
+            if (!mese) {
+                stato.textContent = 'Seleziona un mese valido.';
                 return;
             }
 
-            const [anno, numeroMese] = mese.split('-').map(Number);
-            const primoGiorno = `${anno}-${String(numeroMese).padStart(2, '0')}-01`;
-            const ultimoGiornoData = new Date(Date.UTC(anno, numeroMese, 0));
-            const ultimoGiorno = `${anno}-${String(numeroMese).padStart(2, '0')}-${String(ultimoGiornoData.getUTCDate()).padStart(2, '0')}`;
-            const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latitudine}&longitude=${longitudine}&hourly=sea_level_height_msl&start_date=${primoGiorno}&end_date=${ultimoGiorno}&timezone=auto`;
-
             btn.disabled = true;
-            stato.textContent = 'Caricamento dati mareali...';
+            stato.textContent = 'Ricerca coordinate e caricamento dati mareali...';
             try {
+                let latitudine = Number(latitudineInput.value);
+                let longitudine = Number(longitudineInput.value);
+                if (!latitudineInput.value || !longitudineInput.value) {
+                    ({ latitudine, longitudine } = await geocodificaLocalita(localita));
+                    latitudineInput.value = latitudine.toFixed(3);
+                    longitudineInput.value = longitudine.toFixed(3);
+                }
+                if (!Number.isFinite(latitudine) || !Number.isFinite(longitudine) || latitudine < -90 || latitudine > 90 || longitudine < -180 || longitudine > 180) {
+                    throw new Error('Inserisci coordinate valide.');
+                }
+
+                const [anno, numeroMese] = mese.split('-').map(Number);
+                const primoGiorno = `${anno}-${String(numeroMese).padStart(2, '0')}-01`;
+                const ultimoGiornoData = new Date(Date.UTC(anno, numeroMese, 0));
+                const ultimoGiorno = `${anno}-${String(numeroMese).padStart(2, '0')}-${String(ultimoGiornoData.getUTCDate()).padStart(2, '0')}`;
+                const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${latitudine}&longitude=${longitudine}&hourly=sea_level_height_msl&start_date=${primoGiorno}&end_date=${ultimoGiorno}&timezone=auto`;
+
                 const risposta = await fetch(url);
-                if (!risposta.ok) throw new Error('Risposta non disponibile');
+                if (!risposta.ok) throw new Error(`Dati mareali non disponibili (HTTP ${risposta.status}).`);
                 const dati = await risposta.json();
                 const calendario = raggruppaMareeGiornaliere(dati.hourly?.time || [], dati.hourly?.sea_level_height_msl || []);
                 const giorniNelMese = ultimoGiornoData.getUTCDate();
@@ -521,7 +709,8 @@
                 document.getElementById('calendario-stampa').classList.remove('hidden');
                 stato.textContent = 'Calendario pronto. Usa “Stampa / salva PDF” per ottenere il documento A4.';
             } catch (errore) {
-                stato.textContent = 'Impossibile caricare le maree per questo mese. Controlla la connessione o prova un mese vicino alla data odierna.';
+                console.error('Impossibile caricare il calendario maree.', errore);
+                stato.textContent = errore.message || 'Impossibile caricare le maree. Controlla la connessione o prova un mese vicino alla data odierna.';
             } finally {
                 btn.disabled = false;
             }
@@ -736,6 +925,7 @@
                 boxSemaforo.style.borderColor = "#ef4444";
             }
 
+            document.getElementById('maree-layout').classList.add('has-results');
             document.getElementById('pannello-risultati').classList.remove('hidden');
         }
 

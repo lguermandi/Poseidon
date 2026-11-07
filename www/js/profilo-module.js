@@ -38,6 +38,7 @@ async function inizializzaApp() {
             const email = risultato.email || sessione.email;
             sessione.email = email;
             localStorage.setItem(SESSIONE_KEY, JSON.stringify(sessione));
+            aggiornaProfiloDaCloud(risultato);
             mostraStatoUtente(email);
             await sincronizzaStoricoCloud(sessione);
         } else if (/session|token|autorizz/i.test(risultato.messaggio || risultato.errore || '')) {
@@ -126,6 +127,7 @@ async function effettuaAccesso() {
             return;
         }
         salvaSessione(email, risultato.token, risultato.scadenza);
+        aggiornaProfiloDaCloud(risultato);
         mostraStatoUtente(email);
         aggiornaStatisticheLocali();
         await sincronizzaStoricoCloud({ email, token: risultato.token });
@@ -166,6 +168,7 @@ async function registrati() {
 function mostraStatoUtente(email) {
     document.getElementById('form-container').style.display = 'none';
     document.getElementById('profilo-container').style.display = 'block';
+    document.getElementById('gestione-dati').style.display = 'none';
     document.getElementById('testo-email-utente').textContent = email;
     caricaListaRotte();
 }
@@ -181,6 +184,61 @@ function aggiornaStatisticheLocali() {
     // Carica campi profilo
     document.getElementById('profilo-qualifica').value = localStorage.getItem('profilo_qualifica') || "";
     document.getElementById('profilo-barca').value = localStorage.getItem('profilo_barca') || "";
+    document.getElementById('profilo-base').value = localStorage.getItem('profilo_base') || "";
+}
+
+function salvaDatiProfilo() {
+    const dati = {
+        profilo_qualifica: document.getElementById('profilo-qualifica').value.trim(),
+        profilo_barca: document.getElementById('profilo-barca').value.trim(),
+        profilo_base: document.getElementById('profilo-base').value.trim()
+    };
+    Object.entries(dati).forEach(([chiave, valore]) => localStorage.setItem(chiave, valore));
+    document.getElementById('stato-profilo').textContent = 'Dati salvati su questo dispositivo.';
+}
+
+function aggiornaProfiloDaCloud(risposta) {
+    if (!risposta || typeof risposta !== 'object') return;
+
+    const contenitori = [
+        risposta,
+        risposta.profilo,
+        risposta.utente,
+        risposta.user,
+        risposta.datiUtente,
+        risposta.dati_utente
+    ].filter(contenitore => contenitore && typeof contenitore === 'object');
+    const campi = [
+        { chiaveLocale: 'profilo_qualifica', nomi: ['qualifica'] },
+        { chiaveLocale: 'profilo_barca', nomi: ['barca', 'nomeBarca', 'nomeImbarcazione', 'imbarcazione'] },
+        { chiaveLocale: 'profilo_base', nomi: ['portoBase'] }
+    ];
+
+    campi.forEach(campo => {
+        const nomi = new Set(campo.nomi.map(normalizzaNomeCampo));
+        for (const contenitore of contenitori) {
+            const voce = Object.entries(contenitore).find(([nome]) => nomi.has(normalizzaNomeCampo(nome)));
+            if (!voce) continue;
+            const valore = voce[1];
+            if (typeof valore !== 'string' && typeof valore !== 'number') break;
+            const testo = String(valore).trim();
+            localStorage.setItem(campo.chiaveLocale, testo);
+            const id = campo.chiaveLocale === 'profilo_qualifica'
+                ? 'profilo-qualifica'
+                : campo.chiaveLocale === 'profilo_barca' ? 'profilo-barca' : 'profilo-base';
+            const input = document.getElementById(id);
+            if (input) input.value = testo;
+            break;
+        }
+    });
+}
+
+function normalizzaNomeCampo(nome) {
+    return String(nome)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 }
 
 function leggiArrayLocale(chiave) {
@@ -206,6 +264,7 @@ async function sincronizzaStoricoCloud(sessione) {
             throw new Error(risultato.messaggio || 'Risposta non valida dal server.');
         }
 
+        aggiornaProfiloDaCloud(risultato);
         if (Array.isArray(risultato.logbook)) {
             localStorage.setItem('nave_logbook', JSON.stringify(risultato.logbook));
         }
@@ -307,9 +366,9 @@ async function importaBackupCompleto(event) {
 function aggiornaInterfacciaSync(isOnline) {
     const el = document.getElementById('sync-status');
     if (!el) return;
-    el.innerHTML = isOnline
-        ? '<span style="color:var(--accento-verde)">●</span> Cloud Sincronizzato'
-        : '<span style="color:var(--accento-rosso)">●</span> Modalità Offline';
+    el.classList.toggle('is-online', isOnline);
+    el.classList.toggle('is-offline', !isOnline);
+    el.querySelector('span:last-child').textContent = isOnline ? 'Connessione online' : 'Modalità offline';
 }
 
 function esciAccount() {

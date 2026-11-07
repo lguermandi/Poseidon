@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <title>Profilo | Poseidon</title>
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        /* Estensioni specifiche per il Profilo (integrate con style.css) */
         .profile-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
@@ -34,13 +35,38 @@
         }
 
         .profile-header {
-            margin: 0 auto 24px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            margin: 0 auto 28px;
             max-width: 1280px;
         }
 
+        .profile-heading {
+            min-width: 0;
+        }
+
+        .profile-eyebrow {
+            margin: 0 0 8px;
+            color: var(--accento-ciano);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
         .profile-header h1 {
-            margin: 0 0 6px;
-            font-size: clamp(1.5rem, 2vw, 2rem);
+            margin: 0;
+            font-size: clamp(1.7rem, 3vw, 2.25rem);
+            line-height: 1.15;
+        }
+
+        .profile-intro {
+            margin: 9px 0 0;
+            color: var(--testo-secondario);
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
         .profile-content {
@@ -50,11 +76,16 @@
 
         .profile-hero {
             display: grid;
-            grid-template-columns: minmax(260px, 1.1fr) minmax(280px, 1.5fr) minmax(220px, 0.8fr);
+            grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.15fr);
             align-items: center;
-            gap: 24px;
-            padding: 24px 28px;
-            margin-bottom: 24px;
+            gap: 22px 32px;
+            padding: clamp(22px, 3vw, 32px);
+            margin-bottom: 22px;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at 92% 0%, rgba(14, 165, 233, 0.16), transparent 38%),
+                var(--pannello);
+            box-shadow: 0 18px 38px rgba(2, 8, 23, 0.22);
         }
 
         .profile-identity {
@@ -65,20 +96,21 @@
         }
 
         .profile-avatar {
-            width: 64px;
-            height: 64px;
-            flex: 0 0 64px;
-            background: linear-gradient(135deg, var(--accento-ciano), #2563eb);
-            border-radius: 18px;
+            width: 68px;
+            height: 68px;
+            flex: 0 0 68px;
+            background: linear-gradient(145deg, #38bdf8, #2563eb);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
             display: grid;
             place-items: center;
-            font-size: 1.8rem;
-            box-shadow: 0 10px 24px rgba(14, 165, 233, 0.24);
+            font-size: 1.9rem;
+            box-shadow: 0 12px 26px rgba(14, 165, 233, 0.22);
         }
 
         .profile-email {
-            margin: 0 0 8px;
-            font-size: 1rem;
+            margin: 0 0 10px;
+            font-size: clamp(0.95rem, 1.5vw, 1.1rem);
             overflow-wrap: anywhere;
         }
 
@@ -86,8 +118,44 @@
             margin: 0;
         }
 
+        .profile-stats .stat-widget {
+            min-height: 94px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.72);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .profile-stats .stat-widget:hover {
+            transform: translateY(-2px);
+            border-color: rgba(14, 165, 233, 0.5);
+        }
+
+        .profile-stats .value {
+            line-height: 1.1;
+        }
+
+        .profile-stats .label {
+            margin-top: 6px;
+            font-weight: 700;
+        }
+
+        .profile-hero-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 18px;
+            border-top: 1px solid var(--bordo-soft);
+        }
+
         .profile-hero-action {
+            width: auto;
+            min-width: 230px;
             min-height: 48px;
+            padding: 0 20px;
+            box-shadow: 0 8px 18px rgba(14, 165, 233, 0.18);
         }
 
         .profile-grid {
@@ -100,8 +168,8 @@
         }
 
         .profile-panel-title {
-            margin: 0 0 22px;
-            font-size: 1rem;
+            margin: 0 0 24px;
+            font-size: 1.05rem;
         }
 
         .profile-panel-title::after {
@@ -116,15 +184,144 @@
 
         .profile-data-actions {
             display: grid;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        .profile-auth-actions,
+        .profile-backup-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .profile-data-actions .btn-action,
+        .profile-session-action,
+        .profile-auth-actions .btn-action,
+        .profile-backup-actions .btn-action {
+            min-height: 48px;
+            font-size: 0.92rem;
+        }
+
+        .profile-secondary-action {
+            background: var(--bg-profondo);
+            border: 1px solid var(--bordo-soft);
+        }
+
+        .profile-session-action {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            color: #fca5a5;
+        }
+
+        .profile-session-action:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .profile-panel-copy {
+            margin: -10px 0 20px;
+            color: var(--testo-secondario);
+            font-size: 0.84rem;
+            line-height: 1.55;
+        }
+
+        #auth-status {
+            min-height: 1.3em;
+            margin: 14px 0 0;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .profile-section-heading {
+            margin-bottom: 14px;
+        }
+
+        .profile-section-heading h3 {
+            margin: 0;
+            font-size: 1.12rem;
+        }
+
+        .profile-section-heading p {
+            margin: 6px 0 0;
+            color: var(--testo-secondario);
+            font-size: 0.84rem;
         }
 
         .profile-archive {
-            margin-top: 24px !important;
+            margin-top: 22px !important;
+            padding: clamp(20px, 3vw, 28px);
         }
 
         .profile-archive h3 {
             margin-top: 0;
+        }
+
+        #stato-profilo {
+            min-height: 1.2em;
+            margin: 4px 0 0;
+        }
+
+        #form-container {
+            max-width: 620px;
+            margin: 24px auto;
+            padding: clamp(22px, 4vw, 32px);
+        }
+
+        #gestione-dati {
+            max-width: 1280px;
+            margin: 22px auto 0;
+        }
+
+        .profile-header .sync-indicator {
+            flex: 0 0 auto;
+            margin: 0 0 4px;
+            padding: 8px 12px;
+            border: 1px solid var(--bordo-soft);
+            border-radius: 999px;
+            background: rgba(30, 41, 59, 0.72);
+            white-space: nowrap;
+        }
+
+        .profile-header .sync-indicator.is-online {
+            color: var(--accento-verde);
+        }
+
+        .profile-header .sync-indicator.is-offline {
+            color: #fca5a5;
+        }
+
+        .sync-indicator .status-dot {
+            width: 8px;
+            height: 8px;
+            flex: 0 0 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .track-item {
+            padding: 16px 18px;
+            border: 1px solid var(--bordo-soft);
+            border-left: 3px solid var(--accento-ciano);
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+        }
+
+        a.rotta-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(14, 165, 233, 0.55);
+            background: var(--pannello-hover);
+        }
+
+        .profile-header ~ #form-container h2 {
+            margin-top: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
         }
 
         @media (min-width: 900px) {
@@ -132,39 +329,81 @@
                 padding: 34px 36px 48px;
             }
 
-            #form-container {
-                max-width: 620px;
-                margin: 42px auto;
-                padding: 32px;
-            }
-
             .profile-grid {
                 gap: 24px;
             }
 
-            .stat-widget-container {
-                gap: 16px;
-            }
-
-            .stat-widget {
-                padding: 18px 14px;
+            .profile-grid > .panel {
+                padding: 26px;
             }
         }
 
         @media (max-width: 899px) {
             .profile-hero {
                 grid-template-columns: 1fr;
-                gap: 18px;
+                gap: 20px;
+            }
+
+            .profile-hero-actions {
+                grid-column: auto;
+            }
+
+            .profile-hero-action {
+                width: 100%;
             }
         }
 
         @media (max-width: 620px) {
+            body.modulo-scrollabile>main {
+                padding: 24px 16px calc(32px + env(safe-area-inset-bottom));
+            }
+
+            .profile-header {
+                display: block;
+                margin-bottom: 22px;
+            }
+
+            .profile-header .sync-indicator {
+                display: inline-flex;
+                margin-top: 14px;
+            }
+
             .profile-grid {
                 grid-template-columns: 1fr;
             }
 
             .profile-hero {
+                gap: 18px;
                 padding: 20px;
+            }
+
+            .profile-identity {
+                gap: 13px;
+            }
+
+            .profile-avatar {
+                width: 58px;
+                height: 58px;
+                flex-basis: 58px;
+                border-radius: 17px;
+            }
+
+            .profile-stats {
+                gap: 10px;
+            }
+
+            .profile-stats .stat-widget {
+                min-height: 82px;
+                padding: 12px 8px;
+            }
+
+            .profile-hero-actions {
+                padding-top: 16px;
+            }
+
+            .profile-auth-actions,
+            .profile-backup-actions {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -198,13 +437,24 @@
         }
 
         .badge-status {
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
             border-radius: 20px;
             font-size: 0.7rem;
             font-weight: 700;
             background: rgba(16, 185, 129, 0.1);
             color: var(--accento-verde);
-            border: 1px solid var(--accento-verde);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+        }
+
+        .badge-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
         }
 
         .track-item {
@@ -289,45 +539,36 @@
     style="display: block; height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain;">
     <main>
         <header class="profile-header">
-            <h1 style="margin-bottom: 5px;">Area Personale</h1>
+            <div class="profile-heading">
+                <p class="profile-eyebrow">Plancia personale</p>
+                <h1>Il tuo profilo</h1>
+                <p class="profile-intro">Gestisci i tuoi dati di bordo e riprendi da dove avevi lasciato.</p>
+            </div>
             <div id="sync-status" class="sync-indicator">
-                <span class="dot"></span> Controllo sincronizzazione...
+                <span class="status-dot" aria-hidden="true"></span>
+                <span>Controllo sincronizzazione...</span>
             </div>
         </header>
 
         <!-- STATO NON LOGGATO -->
         <div id="form-container" class="panel">
-            <h2 style="font-size: 1.2rem; margin-bottom: 20px;">Accedi al Cloud Poseidon</h2>
+            <h2 style="font-size: 1.2rem; margin-bottom: 8px;">Accedi al tuo account</h2>
+            <p class="profile-panel-copy" style="margin-top: 0;">Sincronizza i tuoi dati e ritrova il tuo profilo su tutti i dispositivi.</p>
             <form onsubmit="event.preventDefault(); effettuaAccesso();">
                 <div class="input-group">
-                    <label>Email Comandante</label>
-                    <input type="email" id="auth-email" placeholder="esempio@mail.com" required>
+                    <label for="auth-email">Indirizzo email</label>
+                    <input type="email" id="auth-email" placeholder="nome@esempio.it" autocomplete="username" required>
                 </div>
                 <div class="input-group">
-                    <label>Codice Segreto</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" required>
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" placeholder="Inserisci la password" autocomplete="current-password" required>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="profile-auth-actions">
                     <button type="submit" class="btn-action">Accedi</button>
-                    <button type="button" class="btn-action" style="background: var(--pannello);"
-                        onclick="registrati()">Registrati</button>
+                    <button type="button" class="btn-action profile-secondary-action" onclick="registrati()">Crea account</button>
                 </div>
             </form>
-            <p id="auth-status" style="text-align: center; font-size: 0.85rem; margin-top: 15px;"></p>
-        </div>
-
-        <!-- GESTIONE DATI: disponibile anche senza account, i dati sono locali -->
-        <div class="panel">
-            <h3 class="profile-panel-title">Gestione Dati</h3>
-            <div class="profile-data-actions">
-                <button class="btn-action" style="background: #3b82f6;" onclick="esportaBackupCompleto()">💾
-                    Esporta Backup .JSON</button>
-                <button class="btn-action"
-                    style="background: var(--bg-profondo); border: 1px solid var(--bordo-soft);"
-                    onclick="document.getElementById('file-import-completo').click()">📥 Importa Backup</button>
-                <input type="file" id="file-import-completo" accept="application/json,.json" style="display:none"
-                    onchange="importaBackupCompleto(event)">
-            </div>
+            <p id="auth-status" role="status" aria-live="polite"></p>
         </div>
 
         <!-- DASHBOARD UTENTE LOGGATO -->
@@ -335,60 +576,89 @@
 
             <div class="panel profile-hero">
                 <div class="profile-identity">
-                    <div class="profile-avatar">⚓</div>
+                    <div class="profile-avatar" aria-hidden="true">⚓</div>
                     <div>
                         <h2 class="profile-email" id="testo-email-utente">Comandante</h2>
-                        <span class="badge-status">Profilo Verificato</span>
+                        <span class="badge-status">Account Poseidon</span>
                     </div>
                 </div>
 
                 <div class="stat-widget-container profile-stats">
-                    <div class="stat-widget">
+                    <div class="stat-widget" aria-label="Quiz completati">
                         <span class="value" id="stat-quiz">0</span>
-                        <span class="label">Quiz</span>
+                        <span class="label">Quiz completati</span>
                     </div>
-                    <div class="stat-widget">
+                    <div class="stat-widget" aria-label="Voci del logbook">
                         <span class="value" id="stat-logbook">0</span>
-                        <span class="label">Logbook</span>
+                        <span class="label">Voci di bordo</span>
                     </div>
                 </div>
 
-                <button class="btn-action profile-hero-action" onclick="window.location.href='logbook.html'">
-                    📖 Apri Giornale di Bordo
-                </button>
+                <div class="profile-hero-actions">
+                    <button class="btn-action profile-hero-action" onclick="window.location.href='logbook.html'">
+                        📖 Apri Giornale di Bordo
+                    </button>
+                </div>
             </div>
 
             <div class="profile-grid">
-                <!-- Impostazioni -->
                 <div class="panel">
-                    <h3 class="profile-panel-title">Configurazione Bordo</h3>
+                    <h3 class="profile-panel-title">La tua imbarcazione</h3>
+                    <p class="profile-panel-copy">Personalizza i dettagli del tuo profilo di navigazione.</p>
                     <div class="input-group">
-                        <label>Qualifica / Obiettivo</label>
+                        <label for="profilo-qualifica">Qualifica / Obiettivo</label>
                         <input type="text" id="profilo-qualifica" placeholder="es. Patente Nautica"
                             onchange="salvaDatiProfilo()">
                     </div>
                     <div class="input-group">
-                        <label>Nome Imbarcazione</label>
+                        <label for="profilo-barca">Nome imbarcazione</label>
                         <input type="text" id="profilo-barca" placeholder="es. Black Pearl"
                             onchange="salvaDatiProfilo()">
                     </div>
-                    <p id="stato-profilo" style="font-size: 0.75rem; color: var(--testo-secondario);"></p>
+                    <div class="input-group">
+                        <label for="profilo-base">Porto base</label>
+                        <input type="text" id="profilo-base" placeholder="es. Riccione"
+                            onchange="salvaDatiProfilo()">
+                    </div>
+                    <p id="stato-profilo" role="status" aria-live="polite"></p>
                 </div>
 
                 <div class="panel">
-                    <h3 class="profile-panel-title">Sessione</h3>
-                    <button class="btn-action" style="background: var(--accento-rosso);"
-                        onclick="esciAccount()">Disconnetti</button>
+                    <h3 class="profile-panel-title">Gestione account</h3>
+                    <p class="profile-panel-copy">La sessione è attiva su questo dispositivo. I dati locali restano disponibili anche offline.</p>
+                    <div class="profile-data-actions">
+                        <button class="btn-action profile-secondary-action" onclick="esportaBackupCompleto()">💾 Esporta backup</button>
+                        <button class="btn-action profile-secondary-action"
+                            onclick="document.getElementById('file-import-profilo').click()">📥 Importa backup</button>
+                        <button class="btn-action profile-session-action"
+                            onclick="esciAccount()">Disconnetti account</button>
+                        <input type="file" id="file-import-profilo" accept="application/json,.json" hidden
+                            onchange="importaBackupCompleto(event)">
+                    </div>
                 </div>
             </div>
 
-            <!-- Archivio Rotte -->
             <div class="panel profile-archive">
-                <h3>Archivio GPS (GPX)</h3>
+                <div class="profile-section-heading">
+                    <h3>Le tue navigazioni</h3>
+                    <p>Tracce GPS salvate e pronte per l'esportazione.</p>
+                </div>
                 <div id="riepilogo-rotte" class="riepilogo-rotte"></div>
                 <div id="lista-tracce">
-                    <!-- Dinamico -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Backup locale disponibile anche senza un account cloud -->
+        <div id="gestione-dati" class="panel">
+            <h3 class="profile-panel-title">Backup dei dati locali</h3>
+            <p class="profile-panel-copy">Esporta una copia dei tuoi dati o ripristina un backup salvato in precedenza.</p>
+            <div class="profile-data-actions profile-backup-actions">
+                <button class="btn-action" onclick="esportaBackupCompleto()">💾 Esporta backup JSON</button>
+                <button class="btn-action profile-secondary-action"
+                    onclick="document.getElementById('file-import-completo').click()">📥 Importa backup</button>
+                <input type="file" id="file-import-completo" accept="application/json,.json" hidden
+                    onchange="importaBackupCompleto(event)">
             </div>
         </div>
     </main>
