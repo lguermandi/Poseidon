@@ -30,6 +30,8 @@ Moduli principali:
 
 - **Quiz** ([quiz-module.js](./www/js/quiz-module.js)): domande scaricate da un endpoint Google Apps Script e salvate in locale per l'uso offline.
 - **Mappa e navigazione** ([mappa.html](./www/moduli/mappa.html) + [mappa-module.js](./www/js/mappa-module.js)): mappa Leaflet con OpenStreetMap e OpenSeaMap, posizione GPS (su Android tramite BackgroundGeolocation), registrazione tracce, rotte esportabili in GPX, distanza e velocità calcolate con [core_gps.js](./www/js/core_gps.js), previsioni marine e vento (Open-Meteo).
+- **Linea delle 12 miglia**: nella mappa è attiva una linea tratteggiata arancione, disattivabile, che indica approssimativamente i punti a 12 miglia nautiche dalla terra nel Mediterraneo (da 7° O a 37° E e da 30° N a 47° N). È calcolata dalla terra [Natural Earth 1:10m](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/) v5.1.1, dati di pubblico dominio, e disponibile offline dopo il caricamento della cache. La costa è semplificata: la linea non è una carta nautica, non indica necessariamente le acque territoriali e non va usata per la navigazione o per verifiche legali. Per rigenerarla usare [genera-linea-12-miglia.py](./scripts/genera-linea-12-miglia.py), Python con `shapely`, `pyproj` e `pyshp` e l'archivio Natural Earth `ne_10m_land.zip`.
+- **Strumenti mappa**: il pannello consente di misurare distanza ortodromica e rilevamento iniziale fra due punti anche offline, interrogare le previsioni di vento, onde e correnti Open-Meteo su un punto, visualizzare le curve batimetriche EMODnet e cercare porti OpenStreetMap nell'area visibile (zoom almeno 11, massimo 200 risultati tramite Overpass). Meteo, fondali, porti e segnali OpenSeaMap richiedono rete e possono essere incompleti o non aggiornati. I dati meteo sono previsioni di modello, non osservazioni; la batimetria ha copertura limitata. Queste informazioni e le linee visualizzate sono indicative, non carte nautiche ufficiali né strumenti per evitare collisioni. AIS e download di mappe per aree offline non sono disponibili; il solo caricamento iniziale della cache non garantisce la disponibilità offline della mappa di base.
 - **Dettaglio rotta** ([rotta.html](./www/moduli/rotta.html) + [rotta-module.js](./www/js/rotta-module.js)): aperta toccando una rotta nell'archivio del profilo. Mostra statistiche (distanza, durata, velocità media e massima), mappa del percorso con cursore sincronizzato, grafico della velocità interattivo, tratte per ogni miglio nautico (con la più veloce evidenziata) ed esportazione GPX.
 - **Manovre vela** ([vela.html](./www/moduli/vela.html) + [core_vela.js](./www/js/core_vela.js)): calcolo vento vero, VMG e velocità target da polare.
 - **Maree** ([maree.html](./www/moduli/maree.html)), **Meteo** ([meteo.html](./www/moduli/meteo.html)), **Fari** ([fari.html](./www/moduli/fari.html)), **Motore** ([motore.html](./www/moduli/motore.html)), **Ancoraggio** ([ancora.html](./www/moduli/ancora.html)), **Sicurezza** ([sicurezza.html](./www/moduli/sicurezza.html)), **VHF** ([vhf.html](./www/moduli/vhf.html)).
@@ -110,7 +112,7 @@ Lancia `node --test tests/*.test.js`. La suite copre:
 - VMG e vento vero (`LogicaVela`);
 - accumulo di distanza e velocità GPS (`GpsTrackMetrics`).
 
-Non ci sono test per i moduli di interfaccia (`mappa-module.js`, `quiz-module.js`, `profilo-module.js`) né per il service worker.
+I test della mappa verificano anche la separazione fra pianificazione e tracciamento con sostituti di DOM e Leaflet, oltre alla presenza della linea delle 12 miglia nella cache. Non coprono il rendering reale o i servizi esterni; non ci sono test per gli altri moduli di interfaccia né test funzionali del service worker.
 
 ## Build Android
 
@@ -170,8 +172,8 @@ Il font Inter è servito localmente da `www/fonts/`, senza Google Fonts.
 
 `mappa.html` ha due schede in fondo allo schermo:
 
-- **Posizione**: mostra la posizione GPS, il marcatore, le coordinate e l'indicatore di precisione (`±N m`, con stato "assente" se il GPS non risponde). Il GPS è attivo mentre la scheda è aperta.
-- **Navigazione**: registra la traccia, calcola distanza e velocità e permette di pianificare rotte sulla mappa. Registrare avvia sempre il GPS, anche fuori da questa scheda.
+- **Posizione**: mostra posizione, coordinate e precisione GPS (`±N m`), strumenti geografici e pianificazione. In **Strumenti mappa**, attivare **Pianifica rotta** e toccare la mappa per aggiungere waypoint; da due punti si apre il piano, che si può riaprire o eliminare dal pannello. Misura e meteo sul punto sono modalità alternative alla pianificazione. Il GPS è attivo mentre la scheda è aperta.
+- **Navigazione**: avvia e interrompe la registrazione GPS, mostrando distanza, velocità e tempo; al termine permette di salvare, esportare o scartare la traccia. La registrazione prosegue anche nella scheda Posizione; il piano resta sulla mappa e non viene eliminato quando si avvia o chiude una registrazione. Il piano rimane in memoria finché la pagina resta aperta, non è salvato come traccia GPS.
 
 Il fondo mappa è vettoriale (MapLibre GL con lo stile OpenFreeMap, dati OpenStreetMap, senza chiave API) e mostra le etichette in italiano quando disponibili (`name:it`); se lo stile non si carica torna alle tile OpenStreetMap. Le librerie sono fissate con SRI in [mappa.html](./www/moduli/mappa.html) e incluse nella cache offline di [sw.js](./www/sw.js); lo stile invece va scaricato, quindi la mappa vettoriale richiede connessione. Il livello nautico (OpenSeaMap) è sopra la base.
 

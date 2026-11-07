@@ -1,4 +1,4 @@
-const NOME_CACHE = 'nautica-app-52b881e6b61f';
+const NOME_CACHE = 'nautica-app-bee61bfb77f5';
 
 // Questa è la lista di tutti i file che l'app scaricherà per funzionare offline
 const FILE_DA_SALVARE = [
@@ -11,11 +11,13 @@ const FILE_DA_SALVARE = [
     './js/core_gps.js',
     './js/core_navigazione.js',
     './js/core_vela.js',
+    './js/strumenti-mappa.js',
     './js/mappa-module.js',
     './js/profilo-module.js',
     './js/quiz-module.js',
     './js/rotta-module.js',
     './js/esportazione.js',
+    './data/mediterraneo-12-miglia.geojson',
     './moduli/accademia.html',
     './moduli/home.html',
     './moduli/navigazione.html',

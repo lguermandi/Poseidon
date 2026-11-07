@@ -35,12 +35,79 @@
     setTimeout(() => { map.invalidateSize(); }, 200);
 
     // Base vettoriale con nomi in italiano; se lo stile non si carica torna alle tile OSM.
-    caricaBaseMappa(map).finally(() => {
-        L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    const segnaliNautici = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openseamap.org/">OpenSeaMap</a>'
     });
+    caricaBaseMappa(map).finally(() => segnaliNautici.addTo(map));
+
+    const strumentiMappa = creaStrumentiMappa(map);
+
+    const limite12Miglia = L.geoJSON(null, {
+        interactive: false,
+        style: { color: '#f97316', weight: 3, opacity: 0.9, dashArray: '8, 6' }
+    }).addTo(map);
+    const interruttore12Miglia = document.getElementById('mostra-12-miglia');
+    const stato12Miglia = document.getElementById('stato-12-miglia');
+    interruttore12Miglia.addEventListener('change', () => {
+        if (interruttore12Miglia.checked) limite12Miglia.addTo(map);
+        else map.removeLayer(limite12Miglia);
+    });
+    fetch('../data/mediterraneo-12-miglia.geojson')
+        .then(risposta => {
+            if (!risposta.ok) throw new Error(`HTTP ${risposta.status}`);
+            return risposta.json();
+        })
+        .then(dati => {
+            limite12Miglia.addData(dati);
+            stato12Miglia.textContent = 'Mediterraneo · indicativa, non per navigazione';
+        })
+        .catch(errore => {
+            console.warn('Linea delle 12 miglia non disponibile:', errore);
+            stato12Miglia.textContent = 'Linea 12 miglia non disponibile';
+            interruttore12Miglia.disabled = true;
+        });
 
     let arrayWaypoint = [];
     let lineaRotta = null;
+    const waypointPiano = L.featureGroup().addTo(map);
+    let pianificazioneAttiva = false;
+    const btnPianifica = document.getElementById('strumento-rotta');
+    const btnApriPiano = document.getElementById('apri-pianificazione');
+    const btnCancellaPiano = document.getElementById('cancella-pianificazione');
+    const statoPianificazione = document.getElementById('stato-pianificazione');
+    const statoPianoMappa = document.getElementById('stato-piano-mappa');
+
+    function aggiornaControlliPiano() {
+        btnPianifica.setAttribute('aria-pressed', String(pianificazioneAttiva));
+        btnApriPiano.disabled = arrayWaypoint.length < 2;
+        btnCancellaPiano.disabled = arrayWaypoint.length === 0;
+        statoPianificazione.textContent = pianificazioneAttiva
+            ? `Pianificazione attiva: ${arrayWaypoint.length} waypoint. Tocca la mappa per aggiungerne.`
+            : `${arrayWaypoint.length} waypoint. Attiva Pianifica rotta per modificare il piano.`;
+        statoPianoMappa.hidden = !pianificazioneAttiva;
+        statoPianoMappa.textContent = statoPianificazione.textContent;
+    }
+
+    btnPianifica.addEventListener('click', () => {
+        pianificazioneAttiva = !pianificazioneAttiva;
+        if (pianificazioneAttiva) {
+            strumentiMappa.disattiva();
+            document.getElementById('pannello-strumenti').open = false;
+        }
+        aggiornaControlliPiano();
+    });
+    ['strumento-misura', 'strumento-meteo'].forEach(id => {
+        document.getElementById(id).addEventListener('click', () => {
+            pianificazioneAttiva = false;
+            aggiornaControlliPiano();
+        });
+    });
+    btnApriPiano.addEventListener('click', () => {
+        document.getElementById('sheet-pianificazione').classList.add('open');
+    });
+    btnCancellaPiano.addEventListener('click', () => window.cancellaRotta());
+    aggiornaControlliPiano();
 
     let inNavigazione = false;
     let bgWatcherId = null;
@@ -92,8 +159,7 @@
         liveDistanzaNm = 0;
         ultimoPuntoRilevato = null;
         metricheGPS.reset();
-        liveRotta.setLatLngs([]);
-        window.cancellaRotta(true);
+        resetVisualizzazioneTraccia();
     }
 
     function fermaPerErrore(messaggio) {
@@ -330,13 +396,16 @@
 
     // --- 1. PLOTTER MANUALE E PIANIFICAZIONE TATTICA ---
     map.on('click', function (e) {
-        if (inNavigazione || schedaAttiva !== 'navigazione') return;
+        if (schedaAttiva !== 'posizione') return;
+        if (strumentiMappa.gestisciClick(e.latlng)) return;
+        if (!pianificazioneAttiva) return;
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
         arrayWaypoint.push([lat, lng]);
 
-        L.circleMarker([lat, lng], { radius: 5, color: '#ef4444', fillOpacity: 1 }).addTo(map);
+        L.circleMarker([lat, lng], { radius: 5, color: '#ef4444', fillOpacity: 1 }).addTo(waypointPiano);
         aggiornaDisegnoRotta();
+        aggiornaControlliPiano();
 
         // Apre il pannello di calcolo SOLO al momento in cui piazzi il secondo punto (Destinazione)
         if (arrayWaypoint.length === 2) {
@@ -345,8 +414,8 @@
     });
 
     function aggiornaDisegnoRotta() {
-        if (lineaRotta) map.removeLayer(lineaRotta);
-        lineaRotta = L.polyline(arrayWaypoint, { color: '#f43d3d', weight: 3, dashArray: '5, 10' }).addTo(map);
+        if (lineaRotta) waypointPiano.removeLayer(lineaRotta);
+        lineaRotta = L.polyline(arrayWaypoint, { color: '#f43d3d', weight: 3, dashArray: '5, 10' }).addTo(waypointPiano);
 
         let totaleMetri = 0;
         if (arrayWaypoint.length > 1) {
@@ -378,7 +447,7 @@
             document.getElementById('plan-corr-vel').value = '0.5';
             document.getElementById('plan-corr-dir').value = '90';
 
-            btn.innerHTML = "📡 Dati Reali API";
+            btn.innerHTML = "📡 Previsioni API";
             btn.style.background = "#3b82f6";
             btn.setAttribute('data-stato', 'base');
 
@@ -398,13 +467,17 @@
             const urlVento = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn&timezone=auto`;
 
             const [resMarine, resWind] = await Promise.all([fetch(url), fetch(urlVento)]);
+            if (!resMarine.ok || !resWind.ok) throw new Error(`HTTP meteo: mare ${resMarine.status}, vento ${resWind.status}`);
             const dataMarine = await resMarine.json();
             const dataWind = await resWind.json();
-
-            const corrVel = (dataMarine.current.ocean_current_velocity * 0.539957) || 0;
-            const corrDir = dataMarine.current.ocean_current_direction || 0;
-            const ventoVel = dataWind.current.wind_speed_10m || 0;
-            const ventoDir = dataWind.current.wind_direction_10m || 0;
+            const corrVelKm = dataMarine.current?.ocean_current_velocity;
+            const corrDir = dataMarine.current?.ocean_current_direction;
+            const ventoVel = dataWind.current?.wind_speed_10m;
+            const ventoDir = dataWind.current?.wind_direction_10m;
+            if (![corrVelKm, corrDir, ventoVel, ventoDir].every(Number.isFinite)) {
+                throw new Error('Dati meteo o correnti non disponibili per il punto selezionato');
+            }
+            const corrVel = corrVelKm / 1.852;
 
             document.getElementById('plan-corr-vel').value = corrVel.toFixed(1);
             document.getElementById('plan-corr-dir').value = Math.round(corrDir);
@@ -420,8 +493,8 @@
 
         } catch (error) {
             console.error(error);
-            alert("Impossibile scaricare i dati. Modalità offline attiva.");
-            btn.innerHTML = "📡 Dati Reali API";
+            alert("Impossibile scaricare previsioni complete per il punto selezionato. I valori esistenti non sono stati modificati.");
+            btn.innerHTML = "📡 Previsioni API";
             btn.style.background = "#3b82f6";
             btn.setAttribute('data-stato', 'base');
         }
@@ -512,6 +585,11 @@
         const tabBar = document.querySelector('.tab-bar');
         if (tabBar) tabBar.style.setProperty('display', 'none', 'important');
 
+        const strumenti = document.querySelector('.strumenti-mappa');
+        const controlloMiglia = document.querySelector('.controllo-12-miglia');
+        if (strumenti) strumenti.style.setProperty('display', 'none', 'important');
+        if (controlloMiglia) controlloMiglia.style.setProperty('display', 'none', 'important');
+
         document.getElementById('sheet-pianificazione').classList.remove('open');
 
         // Ripristina lo scroll al vertice per non confondere il fotografo PDF
@@ -588,8 +666,12 @@
                     if (menuPoseidon) menuPoseidon.style.removeProperty('display');
                     if (fabContainer) fabContainer.style.removeProperty('display');
                     if (hudTop) hudTop.style.removeProperty('display');
+                    if (pannelloPosizione) pannelloPosizione.style.removeProperty('display');
+                    if (tabBar) tabBar.style.removeProperty('display');
+                    if (strumenti) strumenti.style.removeProperty('display');
+                    if (controlloMiglia) controlloMiglia.style.removeProperty('display');
 
-                    document.getElementById('sheet-pianificazione').classList.add('open');
+                    if (schedaAttiva === 'posizione') document.getElementById('sheet-pianificazione').classList.add('open');
 
                     btnPdf.innerHTML = "📥 Genera PDF";
                     btnPdf.style.background = "#3b82f6";
@@ -597,26 +679,18 @@
         }, 2500);
     };
 
-    const vecchiaCancellaRotta = window.cancellaRotta;
-    window.cancellaRotta = function (silenzioso = false) {
-        if (inNavigazione && !silenzioso) {
-            alert("Sospendi la Navigazione prima di ripulire la mappa.");
-            return;
-        }
+    function resetVisualizzazioneTraccia() {
+        liveRotta.setLatLngs([]);
+        document.getElementById('distanza-totale').textContent = '0.00';
+        document.getElementById('velocita-attuale').textContent = '0.0';
+        document.getElementById('tempo-trascorso').textContent = '00:00';
+    }
 
-        map.eachLayer((layer) => {
-            if (layer instanceof L.Polyline || layer instanceof L.CircleMarker) layer.remove();
-        });
-
+    window.cancellaRotta = function () {
+        waypointPiano.clearLayers();
         arrayWaypoint = [];
         lineaRotta = null;
-        liveRotta = L.polyline([], { color: '#22c55e', weight: 4 }).addTo(map);
-
-        document.getElementById('distanza-totale').textContent = '0.00';
-        const vAtt = document.getElementById('velocita-attuale');
-        if (vAtt) vAtt.textContent = '0.0';
-        const tTras = document.getElementById('tempo-trascorso');
-        if (tTras) tTras.textContent = '00:00';
+        aggiornaControlliPiano();
 
         document.getElementById('sheet-pianificazione')?.classList.remove('open');
         const planDistanza = document.getElementById('plan-distanza');
@@ -627,7 +701,7 @@
         // Ripristina l'interruttore Meteo allo stato base
         const btnMeteo = document.getElementById('btn-meteo-rotta');
         if (btnMeteo) {
-            btnMeteo.innerHTML = "📡 Dati Reali API";
+            btnMeteo.innerHTML = "📡 Previsioni API";
             btnMeteo.style.background = "#3b82f6";
             btnMeteo.setAttribute('data-stato', 'base');
 
@@ -668,8 +742,7 @@
         } else {
             metricheGPS.reset();
         }
-        liveRotta.setLatLngs([]);
-        window.cancellaRotta(true);
+        resetVisualizzazioneTraccia();
 
         if (gpsTrack.length > 0) {
             liveRotta.setLatLngs(gpsTrack);
@@ -738,7 +811,13 @@
         posizioneBloccata = false;
         document.body.dataset.scheda = scheda;
         document.querySelectorAll('.tab-btn').forEach(bottone => bottone.classList.toggle('active', bottone.dataset.tab === scheda));
-        if (scheda !== 'navigazione') document.getElementById('sheet-pianificazione')?.classList.remove('open');
+        if (scheda !== 'posizione') {
+            document.getElementById('sheet-pianificazione')?.classList.remove('open');
+            document.getElementById('pannello-strumenti').open = false;
+            pianificazioneAttiva = false;
+            strumentiMappa.disattiva();
+            aggiornaControlliPiano();
+        }
         aggiornaServizioPosizione();
         setTimeout(() => map.invalidateSize(), 50);
     };
@@ -776,7 +855,7 @@
             const timeISO = new Date(adesso).toISOString();
             puntiTracciato.push({ lat: lat, lon: lng, vel: velocitaCalcolata, time: timeISO });
         }
-        map.panTo(nuovoPunto, { animate: false });
+        if (schedaAttiva === 'navigazione') map.panTo(nuovoPunto, { animate: false });
 
         const timeISO = new Date(adesso).toISOString();
 
@@ -823,7 +902,7 @@
         setTimeout(() => {
             map.invalidateSize();
             if (inNavigazione) {
-                if (ultimoPuntoRilevato) map.panTo(ultimoPuntoRilevato, { animate: false });
+                if (schedaAttiva === 'navigazione' && ultimoPuntoRilevato) map.panTo(ultimoPuntoRilevato, { animate: false });
                 mantieniSchermoAcceso();
             }
         }, 200);
