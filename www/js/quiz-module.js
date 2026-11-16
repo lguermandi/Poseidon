@@ -86,13 +86,13 @@
 
         if (modalita === 'esame') {
             const mazzo = [...databaseGrezzo].sort(() => 0.5 - Math.random());
-            domandeSessione = mazzo.slice(0, 20);
+            domandeSessione = mazzo.slice(0, 5);
             tempoRimanente = 30 * 60;
         } else if (modalita === 'vela') {
             domandeSessione = databaseGrezzo
                 .filter((q) => appartieneAllaVela(q))
                 .sort(() => 0.5 - Math.random())
-                .slice(0, 30);
+                .slice(0, 5);
             tempoRimanente = domandeSessione.length * 90;
         } else if (modalita === 'argomento') {
             const argScelto = document.getElementById('select-argomento').value;
