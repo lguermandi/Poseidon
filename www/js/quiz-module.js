@@ -114,12 +114,19 @@
     }
 
     function appartieneAllaVela(domanda) {
-        const testoCategoria = `${domanda.sezione || ''} ${domanda.argomento || ''}`
+        const testoCategoria = [
+            domanda.sezione,
+            domanda.argomento,
+            domanda.categoria,
+            domanda.foglio,
+            domanda.tab,
+            domanda.tipo
+        ].filter(Boolean).join(' ')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .toLowerCase();
 
-        return testoCategoria.includes('vela');
+        return /\bvela\b|\bvelica\b|\bvelico\b/.test(testoCategoria);
     }
 
     function aggiornaInterfacciaDomanda() {
