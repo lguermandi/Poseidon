@@ -86,7 +86,7 @@
 
         if (modalita === 'esame') {
             const mazzo = [...databaseGrezzo].sort(() => 0.5 - Math.random());
-            domandeSessione = mazzo.slice(0, 5);
+            domandeSessione = mazzo.slice(0, 30);
             tempoRimanente = 30 * 60;
         } else if (modalita === 'vela') {
             domandeSessione = databaseGrezzo
